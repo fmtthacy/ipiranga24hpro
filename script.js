@@ -3,7 +3,13 @@
 // SCRIPT PRINCIPAL
 // ========================================
 
-const postsContainer = document.getElementById("posts");
+
+// ========================================
+// CONTAINER DAS PUBLICAÇÕES
+// ========================================
+
+const postsContainer =
+    document.getElementById("posts");
 
 
 // ========================================
@@ -14,23 +20,40 @@ async function carregarPosts() {
 
     if (!postsContainer) return;
 
+
     postsContainer.innerHTML = `
         <div class="loading">
             Carregando informações...
         </div>
     `;
 
+
     try {
 
-        const resposta = await fetch("data.json");
+        // O ?v evita cache do navegador
+        const resposta =
+            await fetch(
+                "data.json?v=" + Date.now()
+            );
+
 
         if (!resposta.ok) {
-            throw new Error("Erro ao carregar data.json");
+
+            throw new Error(
+                "Erro ao carregar data.json"
+            );
+
         }
 
-        const posts = await resposta.json();
 
-        if (!Array.isArray(posts) || posts.length === 0) {
+        const posts =
+            await resposta.json();
+
+
+        if (
+            !Array.isArray(posts) ||
+            posts.length === 0
+        ) {
 
             postsContainer.innerHTML = `
                 <div class="error">
@@ -39,29 +62,55 @@ async function carregarPosts() {
             `;
 
             return;
+
         }
+
 
         postsContainer.innerHTML = "";
 
-        // Mantém as publicações em ordem aleatória
-        const publicacoes = [...posts];
 
-        publicacoes.sort(() => Math.random() - 0.5);
+        // Cria uma cópia para não alterar
+        // o arquivo original
 
-        publicacoes.forEach((post, index) => {
+        const publicacoes =
+            [...posts];
 
-            // Garante que toda publicação tenha um ID
-            if (!post.id) {
-                post.id = index + 1;
+
+        // Mistura as publicações
+        // ao atualizar a página
+
+        publicacoes.sort(
+            () => Math.random() - 0.5
+        );
+
+
+        publicacoes.forEach(
+            (post, index) => {
+
+                // Se o post não possuir ID,
+                // cria um automaticamente
+
+                if (!post.id) {
+
+                    post.id =
+                        index + 1;
+
+                }
+
+
+                criarPost(post);
+
             }
+        );
 
-            criarPost(post);
-
-        });
 
     } catch (erro) {
 
-        console.error(erro);
+        console.error(
+            "Erro:",
+            erro
+        );
+
 
         postsContainer.innerHTML = `
             <div class="error">
@@ -69,7 +118,9 @@ async function carregarPosts() {
                 Tente atualizar a página.
             </div>
         `;
+
     }
+
 }
 
 
@@ -79,66 +130,87 @@ async function carregarPosts() {
 
 function criarPost(post) {
 
-    const id = String(post.id);
+    const id =
+        String(post.id);
 
-    const artigo = document.createElement("article");
 
-    artigo.className = "post";
+    const artigo =
+        document.createElement("article");
 
-    artigo.id = `post-${id}`;
+
+    artigo.className =
+        "post";
+
+
+    artigo.id =
+        `post-${id}`;
 
 
     // ====================================
     // IMAGEM
     // ====================================
 
-    const imagem = post.imagem
-        ? `
-            <img
-                class="post-image"
-                src="${escaparHTML(post.imagem)}"
-                alt="${escaparHTML(post.titulo || "Publicação Ipiranga")}"
-                loading="lazy"
-            >
-        `
-        : "";
+    const imagem =
+        post.imagem
+            ? `
+                <img
+                    class="post-image"
+                    src="${escaparHTML(post.imagem)}"
+                    alt="${escaparHTML(
+                        post.titulo ||
+                        "Publicação Ipiranga"
+                    )}"
+                    loading="lazy"
+                >
+              `
+            : "";
 
 
     // ====================================
-    // LINK DA PUBLICAÇÃO
+    // LINK ORIGINAL
     // ====================================
 
-    const link = post.link
-        ? `
-            <a
-                class="post-link"
-                href="${escaparHTML(post.link)}"
-                target="_blank"
-                rel="noopener noreferrer"
-            >
-                Ver publicação original
-            </a>
-        `
-        : "";
+    const link =
+        post.link
+            ? `
+                <a
+                    class="post-link"
+                    href="${escaparHTML(post.link)}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+                    Ver publicação original
+                </a>
+              `
+            : "";
 
 
     // ====================================
-    // HTML DO POST
+    // CONTEÚDO
     // ====================================
 
     artigo.innerHTML = `
 
         ${imagem}
 
+
         <div class="post-header">
 
             <div class="post-source">
-                ${escaparHTML(post.fonte || "Ipiranga")}
+                ${escaparHTML(
+                    post.fonte ||
+                    "Ipiranga"
+                )}
             </div>
 
+
             <h2 class="post-title">
-                ${escaparHTML(post.titulo || "Sem título")}
+                ${escaparHTML(
+                    post.titulo ||
+                    "Sem título"
+                )}
             </h2>
+
 
             <div class="post-date">
                 ${formatarData(post.data)}
@@ -150,8 +222,12 @@ function criarPost(post) {
         <div class="post-content">
 
             <p class="post-description">
-                ${escaparHTML(post.descricao || "")}
+                ${escaparHTML(
+                    post.descricao ||
+                    ""
+                )}
             </p>
+
 
             ${link}
 
@@ -225,33 +301,42 @@ function criarPost(post) {
             </div>
 
 
-            <div id="comment-list-${id}">
-            </div>
+            <div
+                id="comment-list-${id}"
+            ></div>
 
         </div>
+
     `;
 
 
-    postsContainer.appendChild(artigo);
+    postsContainer.appendChild(
+        artigo
+    );
 
 
-    // Carrega curtidas e comentários salvos
+    // Carrega curtidas e comentários
     carregarInteracoes(id);
 
 
     // Registra visualização
     registrarVisualizacao(id);
+
 }
 
 
 // ========================================
-// CURTIR PUBLICAÇÃO
+// CURTIR
 // ========================================
 
-function curtirPost(id, botao) {
+function curtirPost(
+    id,
+    botao
+) {
 
     const chaveCurtida =
         `ipiranga-like-${id}`;
+
 
     const chaveQuantidade =
         `ipiranga-likes-${id}`;
@@ -259,18 +344,25 @@ function curtirPost(id, botao) {
 
     let quantidade =
         Number(
-            localStorage.getItem(chaveQuantidade)
+            localStorage.getItem(
+                chaveQuantidade
+            )
         ) || 0;
 
 
     const jaCurtiu =
-        localStorage.getItem(chaveCurtida) === "true";
+        localStorage.getItem(
+            chaveCurtida
+        ) === "true";
 
 
     if (jaCurtiu) {
 
         quantidade =
-            Math.max(0, quantidade - 1);
+            Math.max(
+                0,
+                quantidade - 1
+            );
 
 
         localStorage.setItem(
@@ -279,7 +371,10 @@ function curtirPost(id, botao) {
         );
 
 
-        botao.classList.remove("liked");
+        botao.classList.remove(
+            "liked"
+        );
+
 
     } else {
 
@@ -292,7 +387,10 @@ function curtirPost(id, botao) {
         );
 
 
-        botao.classList.add("liked");
+        botao.classList.add(
+            "liked"
+        );
+
     }
 
 
@@ -303,17 +401,23 @@ function curtirPost(id, botao) {
 
 
     const contador =
-        botao.querySelector("span");
+        botao.querySelector(
+            "span"
+        );
 
 
     if (contador) {
-        contador.textContent = quantidade;
+
+        contador.textContent =
+            quantidade;
+
     }
+
 }
 
 
 // ========================================
-// ABRIR COMENTÁRIOS
+// COMENTÁRIOS
 // ========================================
 
 function abrirComentarios(id) {
@@ -327,10 +431,16 @@ function abrirComentarios(id) {
     if (!comentarios) return;
 
 
-    comentarios.classList.toggle("active");
+    comentarios.classList.toggle(
+        "active"
+    );
 
 
-    if (comentarios.classList.contains("active")) {
+    if (
+        comentarios.classList.contains(
+            "active"
+        )
+    ) {
 
         const input =
             document.getElementById(
@@ -339,9 +449,13 @@ function abrirComentarios(id) {
 
 
         if (input) {
+
             input.focus();
+
         }
+
     }
+
 }
 
 
@@ -373,7 +487,9 @@ function adicionarComentario(id) {
 
     let comentarios =
         JSON.parse(
-            localStorage.getItem(chave)
+            localStorage.getItem(
+                chave
+            )
         ) || [];
 
 
@@ -383,7 +499,8 @@ function adicionarComentario(id) {
 
         texto: texto,
 
-        data: new Date().toISOString()
+        data:
+            new Date().toISOString()
 
     });
 
@@ -398,6 +515,7 @@ function adicionarComentario(id) {
 
 
     mostrarComentarios(id);
+
 }
 
 
@@ -427,36 +545,48 @@ function mostrarComentarios(id) {
     lista.innerHTML = "";
 
 
-    comentarios.forEach(comentario => {
+    comentarios.forEach(
+        comentario => {
 
-        const elemento =
-            document.createElement("div");
-
-
-        elemento.className =
-            "comment";
-
-
-        elemento.innerHTML = `
-
-            <strong>
-                ${escaparHTML(comentario.nome)}
-            </strong>
-
-            <br>
-
-            ${escaparHTML(comentario.texto)}
-
-        `;
+            const elemento =
+                document.createElement(
+                    "div"
+                );
 
 
-        lista.appendChild(elemento);
-    });
+            elemento.className =
+                "comment";
+
+
+            elemento.innerHTML = `
+
+                <strong>
+                    ${escaparHTML(
+                        comentario.nome
+                    )}
+                </strong>
+
+                <br>
+
+                ${escaparHTML(
+                    comentario.texto
+                )}
+
+            `;
+
+
+            lista.appendChild(
+                elemento
+            );
+
+        }
+    );
+
 }
 
 
 // ========================================
-// REGISTRAR VISUALIZAÇÃO
+// VISUALIZAÇÕES
 // ========================================
 
 function registrarVisualizacao(id) {
@@ -467,7 +597,9 @@ function registrarVisualizacao(id) {
 
     let visualizacoes =
         Number(
-            localStorage.getItem(chave)
+            localStorage.getItem(
+                chave
+            )
         ) || 0;
 
 
@@ -480,17 +612,19 @@ function registrarVisualizacao(id) {
     );
 
 
-    const botao =
+    const contador =
         document.querySelector(
             `#post-${id} .view-button span`
         );
 
 
-    if (botao) {
+    if (contador) {
 
-        botao.textContent =
+        contador.textContent =
             visualizacoes;
+
     }
+
 }
 
 
@@ -510,36 +644,45 @@ async function compartilharPost(id) {
 
             await navigator.share({
 
-                title: "Ipiranga 24h",
+                title:
+                    "Ipiranga 24h",
 
                 text:
                     "Confira esta publicação no Ipiranga 24h.",
 
-                url: url
+                url:
+                    url
 
             });
 
+
         } else {
 
-            await navigator.clipboard.writeText(url);
+            await navigator.clipboard.writeText(
+                url
+            );
 
 
             mostrarMensagem(
                 "Link copiado!"
             );
+
         }
+
 
     } catch (erro) {
 
         console.log(
             "Compartilhamento cancelado."
         );
+
     }
+
 }
 
 
 // ========================================
-// MOSTRAR MENSAGEM
+// MENSAGEM
 // ========================================
 
 function mostrarMensagem(texto) {
@@ -553,7 +696,9 @@ function mostrarMensagem(texto) {
     if (!mensagem) {
 
         mensagem =
-            document.createElement("div");
+            document.createElement(
+                "div"
+            );
 
 
         mensagem.className =
@@ -563,6 +708,7 @@ function mostrarMensagem(texto) {
         document.body.appendChild(
             mensagem
         );
+
     }
 
 
@@ -575,13 +721,17 @@ function mostrarMensagem(texto) {
     );
 
 
-    setTimeout(() => {
+    setTimeout(
+        () => {
 
-        mensagem.classList.remove(
-            "active"
-        );
+            mensagem.classList.remove(
+                "active"
+            );
 
-    }, 2500);
+        },
+        2500
+    );
+
 }
 
 
@@ -608,13 +758,16 @@ function carregarInteracoes(id) {
 
 
         const contador =
-            botao.querySelector("span");
+            botao.querySelector(
+                "span"
+            );
 
 
         if (contador) {
 
             contador.textContent =
                 quantidade;
+
         }
 
 
@@ -627,11 +780,14 @@ function carregarInteracoes(id) {
             botao.classList.add(
                 "liked"
             );
+
         }
+
     }
 
 
     mostrarComentarios(id);
+
 }
 
 
@@ -641,42 +797,62 @@ function carregarInteracoes(id) {
 
 function formatarData(data) {
 
+    // Se não existir data
     if (!data) {
+
         return "Data não informada";
+
     }
 
 
-    // Aceita diretamente DD/MM/AAAA
+    const texto =
+        String(data).trim();
+
+
+    // ================================
+    // DD/MM/AAAA
+    // ================================
+
     if (
         /^\d{2}\/\d{2}\/\d{4}$/.test(
-            String(data)
+            texto
         )
     ) {
 
-        return escaparHTML(data);
+        return escaparHTML(
+            texto
+        );
+
     }
 
 
-    // Aceita AAAA-MM-DD
+    // ================================
+    // AAAA-MM-DD
+    // ================================
+
     if (
         /^\d{4}-\d{2}-\d{2}$/.test(
-            String(data)
+            texto
         )
     ) {
 
         const partes =
-            String(data).split("-");
+            texto.split("-");
 
 
         return `
             ${partes[2]}/${partes[1]}/${partes[0]}
         `;
+
     }
 
 
-    // Tenta interpretar outros formatos
+    // ================================
+    // OUTROS FORMATOS
+    // ================================
+
     const dataObj =
-        new Date(data);
+        new Date(texto);
 
 
     if (
@@ -685,7 +861,10 @@ function formatarData(data) {
         )
     ) {
 
-        return escaparHTML(data);
+        return escaparHTML(
+            texto
+        );
+
     }
 
 
@@ -697,6 +876,7 @@ function formatarData(data) {
             year: "numeric"
         }
     );
+
 }
 
 
@@ -707,7 +887,9 @@ function formatarData(data) {
 function escaparHTML(texto) {
 
     const div =
-        document.createElement("div");
+        document.createElement(
+            "div"
+        );
 
 
     div.textContent =
@@ -715,6 +897,7 @@ function escaparHTML(texto) {
 
 
     return div.innerHTML;
+
 }
 
 
