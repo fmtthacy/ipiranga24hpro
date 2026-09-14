@@ -39,24 +39,22 @@ def converter_data(data):
 
     data = limpar(data)
 
-    # DD/MM/YYYY
-    resultado = re.search(
+    padrao = re.search(
         r"\b(\d{1,2})/(\d{1,2})/(\d{4})\b",
         data
     )
 
-    if resultado:
-        dia, mes, ano = resultado.groups()
+    if padrao:
+        dia, mes, ano = padrao.groups()
         return f"{int(dia):02d}/{int(mes):02d}/{ano}"
 
-    # YYYY-MM-DD
-    resultado = re.search(
+    padrao = re.search(
         r"\b(\d{4})-(\d{2})-(\d{2})\b",
         data
     )
 
-    if resultado:
-        ano, mes, dia = resultado.groups()
+    if padrao:
+        ano, mes, dia = padrao.groups()
         return f"{dia}/{mes}/{ano}"
 
     return None
@@ -80,7 +78,7 @@ def obter_pagina(url):
 def encontrar_materias(soup):
 
     materias = []
-    links_vistos = set()
+    vistos = set()
 
     for link in soup.find_all("a", href=True):
 
@@ -98,32 +96,16 @@ def encontrar_materias(soup):
             )
         )
 
-        if not texto:
+        if len(texto) < 15:
             continue
 
-        # Aceita diferentes formatos de URL
-        # usados dentro da Sala de Imprensa.
-        parece_materia = any(
-            termo in url.lower()
-            for termo in [
-                "/materias/",
-                "/materia/",
-                "materias",
-                "imprensa"
-            ]
-        )
-
-        if not parece_materia:
+        if "/materias/" not in url.lower():
             continue
 
-        if url in links_vistos:
+        if url in vistos:
             continue
 
-        # Evita links genéricos da página
-        if url.rstrip("/") == URL_SALA_IMPRENSA.rstrip("/"):
-            continue
-
-        links_vistos.add(url)
+        vistos.add(url)
 
         materias.append({
             "titulo": texto,
@@ -133,50 +115,28 @@ def encontrar_materias(soup):
     return materias
 
 
-def extrair_materia(url, titulo_inicial):
+def extrair_descricao(soup, titulo):
 
-    try:
-        soup = obter_pagina(url)
-
-    except Exception as erro:
-        print("Erro ao abrir:", url)
-        print(erro)
-        return None
-
-    titulo = titulo_inicial
-    descricao = ""
-    data = None
-
-    # -------------------------------
-    # TÍTULO
-    # -------------------------------
-
-    og_title = soup.find(
+    # Primeiro tenta a descrição específica da matéria.
+    meta = soup.find(
         "meta",
         attrs={
-            "property": "og:title"
+            "property": "og:description"
         }
     )
 
-    if og_title and og_title.get("content"):
-        titulo = limpar(
-            og_title["content"]
+    if meta and meta.get("content"):
+
+        descricao = limpar(
+            meta["content"]
         )
 
-    if soup.find("h1"):
-        texto_h1 = limpar(
-            soup.find("h1").get_text(
-                " ",
-                strip=True
-            )
-        )
-
-        if len(texto_h1) > 10:
-            titulo = texto_h1
-
-    # -------------------------------
-    # DESCRIÇÃO
-    # -------------------------------
+        if (
+            descricao
+            and descricao.lower() != titulo.lower()
+            and "fique por dentro de todas as novidades" not in descricao.lower()
+        ):
+            return descricao
 
     meta = soup.find(
         "meta",
@@ -186,81 +146,109 @@ def extrair_materia(url, titulo_inicial):
     )
 
     if meta and meta.get("content"):
+
         descricao = limpar(
             meta["content"]
         )
 
-    if not descricao:
+        if (
+            descricao
+            and descricao.lower() != titulo.lower()
+            and "fique por dentro de todas as novidades" not in descricao.lower()
+        ):
+            return descricao
 
-        meta = soup.find(
-            "meta",
-            attrs={
-                "property": "og:description"
-            }
+    # Procura textos dos parágrafos.
+    candidatos = []
+
+    for p in soup.find_all("p"):
+
+        texto = limpar(
+            p.get_text(
+                " ",
+                strip=True
+            )
         )
 
-        if meta and meta.get("content"):
-            descricao = limpar(
-                meta["content"]
+        texto_lower = texto.lower()
+
+        if len(texto) < 50:
+            continue
+
+        if "fique por dentro de todas as novidades" in texto_lower:
+            continue
+
+        if texto_lower == titulo.lower():
+            continue
+
+        candidatos.append(texto)
+
+    if candidatos:
+        return candidatos[0]
+
+    return (
+        "Confira a publicação completa "
+        "no site oficial da Ipiranga."
+    )
+
+
+def extrair_materia(url, titulo_inicial):
+
+    try:
+        soup = obter_pagina(url)
+
+    except Exception as erro:
+
+        print(
+            "Erro ao abrir:",
+            url
+        )
+
+        print(erro)
+
+        return None
+
+    titulo = titulo_inicial
+
+    # Título específico
+    h1 = soup.find("h1")
+
+    if h1:
+
+        texto = limpar(
+            h1.get_text(
+                " ",
+                strip=True
+            )
+        )
+
+        if len(texto) > 10:
+            titulo = texto
+
+    # Data
+    data = None
+
+    # Procura datas no código HTML
+    texto_html = str(soup)
+
+    datas = re.findall(
+        r"\b\d{1,2}/\d{1,2}/\d{4}\b",
+        texto_html
+    )
+
+    if datas:
+
+        for valor in datas:
+
+            data_teste = converter_data(
+                valor
             )
 
-    # -------------------------------
-    # DATA
-    # -------------------------------
-
-    # Primeiro tenta JSON-LD
-    for script in soup.find_all(
-        "script",
-        attrs={
-            "type": "application/ld+json"
-        }
-    ):
-
-        try:
-
-            if not script.string:
-                continue
-
-            dados = json.loads(
-                script.string
-            )
-
-            if isinstance(dados, dict):
-                dados = [dados]
-
-            if not isinstance(dados, list):
-                continue
-
-            for item in dados:
-
-                if not isinstance(item, dict):
-                    continue
-
-                valor = (
-                    item.get("datePublished")
-                    or item.get("dateCreated")
-                    or item.get("dateModified")
-                )
-
-                if valor:
-
-                    data = converter_data(
-                        str(valor)
-                    )
-
-                    if data:
-                        break
-
-            if data:
+            if data_teste:
+                data = data_teste
                 break
 
-        except Exception:
-            pass
-
-    # -------------------------------
-    # Procura a data no texto
-    # -------------------------------
-
+    # Se não achou, procura no texto
     if not data:
 
         texto = limpar(
@@ -270,39 +258,9 @@ def extrair_materia(url, titulo_inicial):
             )
         )
 
-        data = converter_data(texto)
-
-    # -------------------------------
-    # Descrição alternativa
-    # -------------------------------
-
-    if not descricao:
-
-        for paragrafo in soup.find_all("p"):
-
-            texto = limpar(
-                paragrafo.get_text(
-                    " ",
-                    strip=True
-                )
-            )
-
-            if len(texto) >= 80:
-
-                descricao = texto
-                break
-
-    if not descricao:
-
-        descricao = (
-            "Confira a publicação completa "
-            "no site oficial da Ipiranga."
+        data = converter_data(
+            texto
         )
-
-    # -------------------------------
-    # Se não encontrou data,
-    # não salva a matéria.
-    # -------------------------------
 
     if not data:
 
@@ -312,6 +270,11 @@ def extrair_materia(url, titulo_inicial):
         )
 
         return None
+
+    descricao = extrair_descricao(
+        soup,
+        titulo
+    )
 
     return {
         "titulo": titulo,
@@ -342,8 +305,10 @@ def carregar_existentes():
 
     except Exception as erro:
 
-        print("Erro lendo data.json:")
-        print(erro)
+        print(
+            "Erro lendo data.json:",
+            erro
+        )
 
     return []
 
@@ -362,35 +327,44 @@ def data_numero(data):
         return datetime.min
 
 
+def chave_materia(materia):
+
+    titulo = limpar(
+        materia.get("titulo", "")
+    ).lower()
+
+    data = materia.get(
+        "data",
+        ""
+    )
+
+    # Usa título + data para reconhecer
+    # a mesma matéria mesmo que o link antigo
+    # seja diferente.
+    return (
+        re.sub(
+            r"[^a-z0-9]+",
+            "",
+            titulo
+        ),
+        data
+    )
+
+
 def main():
 
     print("")
     print("==============================")
     print("IPIRANGA 24H")
-    print("Atualização automática")
+    print("ATUALIZAÇÃO AUTOMÁTICA")
     print("==============================")
     print("")
 
     antigas = carregar_existentes()
 
     print(
-        "Matérias já existentes:",
+        "Matérias antigas:",
         len(antigas)
-    )
-
-    # Mantém tudo que já existe
-    por_link = {}
-
-    for materia in antigas:
-
-        link = materia.get("link")
-
-        if link:
-            por_link[link] = materia
-
-    print("")
-    print(
-        "Acessando a Sala de Imprensa..."
     )
 
     try:
@@ -403,49 +377,59 @@ def main():
 
         print("")
         print(
-            "ERRO: não foi possível acessar "
-            "a Ipiranga."
+            "Não foi possível acessar "
+            "a Sala de Imprensa."
         )
+
         print(erro)
 
-        print("")
         print(
-            "O data.json NÃO será alterado."
+            "O data.json não será alterado."
         )
 
         return
 
-    materias = encontrar_materias(
+    links = encontrar_materias(
         soup
     )
 
     print(
-        "Links encontrados:",
-        len(materias)
+        "Matérias encontradas:",
+        len(links)
     )
 
-    if not materias:
+    if not links:
 
-        print("")
         print(
             "Nenhuma matéria encontrada."
         )
+
         print(
-            "O data.json NÃO será alterado."
+            "O data.json não será alterado."
         )
 
         return
 
-    print("")
+    materias = {}
+
+    # Primeiro coloca as antigas.
+    for materia in antigas:
+
+        chave = chave_materia(
+            materia
+        )
+
+        if chave[0]:
+            materias[chave] = materia
 
     novas = 0
 
-    # Limita a quantidade consultada
-    # para evitar excesso de requisições.
-    for item in materias[:30]:
+    # Depois atualiza com as matérias
+    # encontradas diretamente no site.
+    for item in links[:50]:
 
         print(
-            "Consultando:",
+            "Buscando:",
             item["titulo"]
         )
 
@@ -457,26 +441,20 @@ def main():
         if not materia:
             continue
 
-        link = materia["link"]
+        chave = chave_materia(
+            materia
+        )
 
-        if link not in por_link:
+        if chave not in materias:
             novas += 1
 
-        por_link[link] = materia
-
-    # -------------------------------
-    # Junta antigas + novas
-    # -------------------------------
+        materias[chave] = materia
 
     resultado = list(
-        por_link.values()
+        materias.values()
     )
 
-    # -------------------------------
-    # Ordena da mais nova
-    # para a mais antiga
-    # -------------------------------
-
+    # Ordena por data.
     resultado.sort(
         key=lambda item: data_numero(
             item.get("data", "")
@@ -484,25 +462,16 @@ def main():
         reverse=True
     )
 
-    # -------------------------------
-    # Mantém no máximo 50
-    # -------------------------------
-
+    # Mantém no máximo 50.
     resultado = resultado[:LIMITE]
 
-    # -------------------------------
-    # IDs
-    # -------------------------------
-
+    # Recria os IDs.
     for numero, materia in enumerate(
         resultado,
         start=1
     ):
-        materia["id"] = numero
 
-    # -------------------------------
-    # Salva
-    # -------------------------------
+        materia["id"] = numero
 
     with open(
         ARQUIVO,
@@ -521,15 +490,13 @@ def main():
 
     print("")
     print("==============================")
+    print("ATUALIZAÇÃO CONCLUÍDA")
     print(
-        "ATUALIZAÇÃO CONCLUÍDA!"
-    )
-    print(
-        "Total de matérias:",
+        "Total:",
         len(resultado)
     )
     print(
-        "Novas matérias:",
+        "Novas:",
         novas
     )
     print("==============================")
