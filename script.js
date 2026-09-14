@@ -1,591 +1,534 @@
-/* ========================================
-   IPIRANGA 24H
-   ESTILO COMPLETO
-======================================== */
+// ========================================
+// IPIRANGA 24H
+// SCRIPT PRINCIPAL
+// ========================================
 
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+const postsContainer = document.getElementById("posts");
 
-body {
-    font-family: Arial, Helvetica, sans-serif;
-    background: #f3f4f6;
-    color: #17233c;
-    min-height: 100vh;
-}
 
+// ========================================
+// CARREGAR PUBLICAÇÕES
+// ========================================
 
-/* ========================================
-   TELA DE ACESSO
-======================================== */
+async function carregarPosts() {
 
-.tela-acesso {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 25px 18px;
+    if (!postsContainer) return;
 
-    background:
-        linear-gradient(
-            180deg,
-            #003b7a 0%,
-            #00549a 55%,
-            #f3f4f6 55%,
-            #f3f4f6 100%
-        );
-}
+    postsContainer.innerHTML = `
+        <div class="loading">
+            Carregando informações...
+        </div>
+    `;
 
-.caixa-acesso {
-    width: 100%;
-    max-width: 420px;
-    background: white;
-    border-radius: 20px;
-    padding: 35px 25px;
-    text-align: center;
+    try {
 
-    box-shadow:
-        0 8px 30px rgba(0, 0, 0, 0.15);
-}
+        const resposta = await fetch("data.json");
 
-.logo-ipiranga {
-    display: inline-block;
-
-    background: #ffd900;
-    color: #003b7a;
-
-    font-size: 25px;
-    font-weight: 900;
-
-    padding: 9px 18px;
-    border-radius: 12px;
-
-    margin-bottom: 20px;
-}
-
-.caixa-acesso h1 {
-    color: #003b7a;
-    font-size: 29px;
-    margin-bottom: 10px;
-}
-
-.caixa-acesso p {
-    color: #666;
-    font-size: 15px;
-    line-height: 1.5;
-    margin-bottom: 28px;
-}
-
-
-/* ========================================
-   BOTÕES DE ACESSO
-======================================== */
-
-.botao-principal,
-.botao-visitante {
-    width: 100%;
-    padding: 14px;
-    border-radius: 10px;
-    font-size: 16px;
-    font-weight: bold;
-    cursor: pointer;
-
-    transition: 0.2s;
-}
-
-.botao-principal {
-    border: none;
-    background: #003b7a;
-    color: white;
-    margin-bottom: 10px;
-}
-
-.botao-principal:hover {
-    background: #002d5d;
-}
-
-.botao-visitante {
-    background: white;
-    color: #003b7a;
-    border: 2px solid #003b7a;
-}
-
-.botao-visitante:hover {
-    background: #eef5fb;
-}
-
-.caixa-acesso small {
-    display: block;
-    margin-top: 18px;
-
-    color: #777;
-    font-size: 12px;
-    line-height: 1.4;
-}
-
-
-/* ========================================
-   SITE PRINCIPAL
-======================================== */
-
-.site {
-    min-height: 100vh;
-}
-
-
-/* ========================================
-   CABEÇALHO
-======================================== */
-
-header {
-    background: #003b7a;
-    color: white;
-
-    border-bottom: 6px solid #ffd900;
-
-    padding: 20px 16px;
-}
-
-.topo {
-    width: 100%;
-    max-width: 850px;
-    margin: auto;
-
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 15px;
-}
-
-.topo h1 {
-    font-size: 28px;
-    margin-bottom: 5px;
-}
-
-.topo p {
-    font-size: 14px;
-    opacity: 0.9;
-}
-
-
-/* ========================================
-   BOTÃO SAIR
-======================================== */
-
-.botao-sair {
-    background: transparent;
-    border: 1px solid rgba(255,255,255,0.7);
-    color: white;
-
-    padding: 8px 13px;
-    border-radius: 8px;
-
-    cursor: pointer;
-}
-
-.botao-sair:hover {
-    background: rgba(255,255,255,0.1);
-}
-
-
-/* ========================================
-   CONTEÚDO
-======================================== */
-
-main {
-    width: 100%;
-    max-width: 850px;
-
-    margin: 0 auto;
-
-    padding: 20px 15px 50px;
-}
-
-
-/* ========================================
-   TIPO DE ACESSO
-======================================== */
-
-.tipo-acesso {
-    background: white;
-
-    border-left: 5px solid #ffd900;
-
-    padding: 12px 15px;
-
-    border-radius: 8px;
-
-    margin-bottom: 20px;
-
-    color: #555;
-    font-size: 13px;
-
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-}
-
-
-/* ========================================
-   FEED
-======================================== */
-
-#posts {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-
-/* ========================================
-   PUBLICAÇÃO
-======================================== */
-
-.post {
-    background: white;
-
-    border-radius: 14px;
-    overflow: hidden;
-
-    border: 1px solid #e2e5e9;
-
-    box-shadow:
-        0 3px 12px rgba(0,0,0,0.07);
-}
-
-.post-header {
-    padding: 17px 18px 10px;
-}
-
-.post-source {
-    color: #0066b3;
-
-    font-size: 13px;
-    font-weight: bold;
-
-    margin-bottom: 7px;
-}
-
-.post-title {
-    color: #17233c;
-
-    font-size: 21px;
-    line-height: 1.3;
-
-    margin-bottom: 8px;
-}
-
-.post-date {
-    color: #777;
-    font-size: 12px;
-}
-
-
-/* ========================================
-   IMAGEM
-======================================== */
-
-.post-image {
-    width: 100%;
-    max-height: 420px;
-
-    object-fit: cover;
-
-    display: block;
-}
-
-
-/* ========================================
-   TEXTO DA PUBLICAÇÃO
-======================================== */
-
-.post-content {
-    padding: 15px 18px;
-}
-
-.post-description {
-    color: #444;
-
-    font-size: 15px;
-    line-height: 1.5;
-}
-
-
-/* ========================================
-   AÇÕES
-======================================== */
-
-.post-actions {
-    display: flex;
-    align-items: center;
-
-    border-top: 1px solid #eeeeee;
-
-    padding: 8px 10px;
-
-    gap: 5px;
-}
-
-.action-button {
-    border: none;
-    background: transparent;
-
-    color: #555;
-
-    cursor: pointer;
-
-    padding: 9px 10px;
-
-    border-radius: 8px;
-
-    font-size: 14px;
-
-    transition: 0.2s;
-}
-
-.action-button:hover {
-    background: #f1f3f5;
-}
-
-.action-button:disabled {
-    cursor: default;
-    opacity: 0.8;
-}
-
-.action-button.liked {
-    color: #d7263d;
-}
-
-.action-button span {
-    margin-left: 3px;
-}
-
-
-/* ========================================
-   COMENTÁRIOS
-======================================== */
-
-.comments {
-    display: none;
-
-    padding: 15px 18px;
-
-    border-top: 1px solid #eeeeee;
-
-    background: #fafafa;
-}
-
-.comments.active {
-    display: block;
-}
-
-.comment-form {
-    display: flex;
-    gap: 8px;
-
-    margin-bottom: 15px;
-}
-
-.comment-input {
-    flex: 1;
-
-    border: 1px solid #d5d9df;
-
-    border-radius: 8px;
-
-    padding: 10px;
-
-    outline: none;
-
-    font-size: 14px;
-}
-
-.comment-input:focus {
-    border-color: #0066b3;
-}
-
-.comment-button {
-    border: none;
-
-    background: #0066b3;
-    color: white;
-
-    padding: 10px 14px;
-
-    border-radius: 8px;
-
-    cursor: pointer;
-
-    font-weight: bold;
-}
-
-.comment-button:hover {
-    background: #004f8c;
-}
-
-.comment {
-    padding: 10px;
-
-    background: white;
-
-    border-radius: 8px;
-
-    margin-bottom: 8px;
-
-    font-size: 14px;
-}
-
-.comment strong {
-    color: #003b7a;
-}
-
-
-/* ========================================
-   MENSAGEM DE COMPARTILHAMENTO
-======================================== */
-
-.share-message {
-    position: fixed;
-
-    bottom: 20px;
-    left: 50%;
-
-    transform: translateX(-50%);
-
-    background: #003b7a;
-    color: white;
-
-    padding: 12px 18px;
-
-    border-radius: 10px;
-
-    font-size: 14px;
-
-    display: none;
-
-    z-index: 1000;
-}
-
-.share-message.active {
-    display: block;
-}
-
-
-/* ========================================
-   CARREGAMENTO
-======================================== */
-
-.loading {
-    text-align: center;
-
-    padding: 40px 20px;
-
-    color: #666;
-}
-
-.loading::before {
-    content: "⟳";
-
-    display: block;
-
-    font-size: 30px;
-
-    margin-bottom: 10px;
-
-    animation: girar 1s linear infinite;
-}
-
-@keyframes girar {
-
-    from {
-        transform: rotate(0deg);
-    }
-
-    to {
-        transform: rotate(360deg);
-    }
-
-}
-
-
-/* ========================================
-   ERRO
-======================================== */
-
-.error {
-    background: white;
-
-    border-left: 5px solid #d7263d;
-
-    padding: 18px;
-
-    border-radius: 10px;
-
-    color: #555;
-}
-
-
-/* ========================================
-   CELULAR
-======================================== */
-
-@media (max-width: 600px) {
-
-    .tela-acesso {
-        padding: 20px 15px;
-    }
-
-    .caixa-acesso {
-        padding: 30px 20px;
-    }
-
-    .caixa-acesso h1 {
-        font-size: 25px;
-    }
-
-    header {
-        padding: 18px 12px;
-    }
-
-    .topo h1 {
-        font-size: 24px;
-    }
-
-    .topo p {
-        font-size: 12px;
-    }
-
-    .botao-sair {
-        padding: 7px 10px;
-        font-size: 12px;
-    }
-
-    main {
-        padding: 15px 10px 40px;
-    }
-
-    .post-title {
-        font-size: 18px;
-    }
-
-    .post-description {
-        font-size: 14px;
-    }
-
-    .post-actions {
-        justify-content: space-between;
-    }
-
-    .action-button {
-        font-size: 12px;
-        padding: 8px 5px;
-    }
-
-    .comment-form {
-        flex-direction: column;
-    }
-
-    .comment-button {
-        width: 100%;
-    }
+        if (!resposta.ok) {
+            throw new Error("Erro ao carregar data.json");
         }
+
+        const posts = await resposta.json();
+
+        if (!Array.isArray(posts) || posts.length === 0) {
+
+            postsContainer.innerHTML = `
+                <div class="error">
+                    Nenhuma publicação disponível no momento.
+                </div>
+            `;
+
+            return;
+        }
+
+        postsContainer.innerHTML = "";
+
+        // Mistura as publicações ao atualizar a página
+        const publicacoes = [...posts];
+
+        publicacoes.sort(() => Math.random() - 0.5);
+
+        publicacoes.forEach(post => {
+            criarPost(post);
+        });
+
+    } catch (erro) {
+
+        console.error(erro);
+
+        postsContainer.innerHTML = `
+            <div class="error">
+                Não foi possível carregar as informações.
+                Tente atualizar a página.
+            </div>
+        `;
+    }
+}
+
+
+// ========================================
+// CRIAR PUBLICAÇÃO
+// ========================================
+
+function criarPost(post) {
+
+    const id = String(post.id);
+
+    const artigo = document.createElement("article");
+
+    artigo.className = "post";
+
+    artigo.id = `post-${id}`;
+
+    const imagem = post.imagem
+        ? `
+            <img
+                class="post-image"
+                src="${escaparHTML(post.imagem)}"
+                alt="${escaparHTML(post.titulo)}"
+                loading="lazy"
+            >
+        `
+        : "";
+
+    artigo.innerHTML = `
+
+        ${imagem}
+
+        <div class="post-header">
+
+            <div class="post-source">
+                ${escaparHTML(post.fonte || "Ipiranga")}
+            </div>
+
+            <h2 class="post-title">
+                ${escaparHTML(post.titulo || "Sem título")}
+            </h2>
+
+            <div class="post-date">
+                ${formatarData(post.data)}
+            </div>
+
+        </div>
+
+        <div class="post-content">
+
+            <p class="post-description">
+                ${escaparHTML(post.descricao || "")}
+            </p>
+
+        </div>
+
+        <div class="post-actions">
+
+            <button
+                class="action-button like-button"
+                onclick="curtirPost('${id}', this)"
+            >
+                ❤️ <span>0</span>
+            </button>
+
+            <button
+                class="action-button"
+                onclick="abrirComentarios('${id}')"
+            >
+                💬 <span>Comentar</span>
+            </button>
+
+            <button
+                class="action-button"
+                onclick="compartilharPost('${id}')"
+            >
+                🔗 <span>Compartilhar</span>
+            </button>
+
+            <button
+                class="action-button view-button"
+                disabled
+            >
+                👁️ <span>0</span>
+            </button>
+
+        </div>
+
+        <div
+            class="comments"
+            id="comments-${id}"
+        >
+
+            <div class="comment-form">
+
+                <input
+                    class="comment-input"
+                    id="input-${id}"
+                    type="text"
+                    maxlength="300"
+                    placeholder="Escreva um comentário..."
+                >
+
+                <button
+                    class="comment-button"
+                    onclick="adicionarComentario('${id}')"
+                >
+                    Enviar
+                </button>
+
+            </div>
+
+            <div id="comment-list-${id}">
+            </div>
+
+        </div>
+    `;
+
+    postsContainer.appendChild(artigo);
+
+    carregarInteracoes(id);
+
+    registrarVisualizacao(id);
+}
+
+
+// ========================================
+// CURTIR
+// ========================================
+
+function curtirPost(id, botao) {
+
+    const chaveCurtida = `ipiranga-like-${id}`;
+    const chaveQuantidade = `ipiranga-likes-${id}`;
+
+    let quantidade =
+        Number(localStorage.getItem(chaveQuantidade)) || 0;
+
+    const jaCurtiu =
+        localStorage.getItem(chaveCurtida) === "true";
+
+    if (jaCurtiu) {
+
+        quantidade = Math.max(0, quantidade - 1);
+
+        localStorage.setItem(
+            chaveCurtida,
+            "false"
+        );
+
+        botao.classList.remove("liked");
+
+    } else {
+
+        quantidade++;
+
+        localStorage.setItem(
+            chaveCurtida,
+            "true"
+        );
+
+        botao.classList.add("liked");
+    }
+
+    localStorage.setItem(
+        chaveQuantidade,
+        quantidade
+    );
+
+    botao.querySelector("span").textContent =
+        quantidade;
+}
+
+
+// ========================================
+// COMENTÁRIOS
+// ========================================
+
+function abrirComentarios(id) {
+
+    const comentarios =
+        document.getElementById(`comments-${id}`);
+
+    if (!comentarios) return;
+
+    comentarios.classList.toggle("active");
+
+    if (comentarios.classList.contains("active")) {
+
+        const input =
+            document.getElementById(`input-${id}`);
+
+        if (input) {
+            input.focus();
+        }
+    }
+}
+
+
+function adicionarComentario(id) {
+
+    const input =
+        document.getElementById(`input-${id}`);
+
+    if (!input) return;
+
+    const texto = input.value.trim();
+
+    if (!texto) return;
+
+    const chave =
+        `ipiranga-comments-${id}`;
+
+    let comentarios =
+        JSON.parse(
+            localStorage.getItem(chave)
+        ) || [];
+
+    comentarios.push({
+        nome: "Visitante",
+        texto: texto,
+        data: new Date().toISOString()
+    });
+
+    localStorage.setItem(
+        chave,
+        JSON.stringify(comentarios)
+    );
+
+    input.value = "";
+
+    mostrarComentarios(id);
+}
+
+
+function mostrarComentarios(id) {
+
+    const lista =
+        document.getElementById(
+            `comment-list-${id}`
+        );
+
+    if (!lista) return;
+
+    const comentarios =
+        JSON.parse(
+            localStorage.getItem(
+                `ipiranga-comments-${id}`
+            )
+        ) || [];
+
+    lista.innerHTML = "";
+
+    comentarios.forEach(comentario => {
+
+        const elemento =
+            document.createElement("div");
+
+        elemento.className = "comment";
+
+        elemento.innerHTML = `
+            <strong>
+                ${escaparHTML(comentario.nome)}
+            </strong>
+
+            <br>
+
+            ${escaparHTML(comentario.texto)}
+        `;
+
+        lista.appendChild(elemento);
+    });
+}
+
+
+// ========================================
+// VISUALIZAÇÕES
+// ========================================
+
+function registrarVisualizacao(id) {
+
+    const chave =
+        `ipiranga-views-${id}`;
+
+    let visualizacoes =
+        Number(localStorage.getItem(chave)) || 0;
+
+    visualizacoes++;
+
+    localStorage.setItem(
+        chave,
+        visualizacoes
+    );
+
+    const botao =
+        document.querySelector(
+            `#post-${id} .view-button span`
+        );
+
+    if (botao) {
+        botao.textContent = visualizacoes;
+    }
+}
+
+
+// ========================================
+// COMPARTILHAR
+// ========================================
+
+async function compartilharPost(id) {
+
+    const url =
+        `${window.location.href.split("#")[0]}#post-${id}`;
+
+    try {
+
+        if (navigator.share) {
+
+            await navigator.share({
+                title: "Ipiranga 24h",
+                text: "Confira esta publicação no Ipiranga 24h.",
+                url: url
+            });
+
+        } else {
+
+            await navigator.clipboard.writeText(url);
+
+            mostrarMensagem(
+                "Link copiado!"
+            );
+        }
+
+    } catch (erro) {
+
+        console.log(
+            "Compartilhamento cancelado."
+        );
+    }
+}
+
+
+// ========================================
+// MENSAGEM
+// ========================================
+
+function mostrarMensagem(texto) {
+
+    let mensagem =
+        document.querySelector(
+            ".share-message"
+        );
+
+    if (!mensagem) {
+
+        mensagem =
+            document.createElement("div");
+
+        mensagem.className =
+            "share-message";
+
+        document.body.appendChild(
+            mensagem
+        );
+    }
+
+    mensagem.textContent = texto;
+
+    mensagem.classList.add("active");
+
+    setTimeout(() => {
+
+        mensagem.classList.remove(
+            "active"
+        );
+
+    }, 2500);
+}
+
+
+// ========================================
+// CARREGAR INTERAÇÕES
+// ========================================
+
+function carregarInteracoes(id) {
+
+    const botao =
+        document.querySelector(
+            `#post-${id} .like-button`
+        );
+
+    if (botao) {
+
+        const quantidade =
+            Number(
+                localStorage.getItem(
+                    `ipiranga-likes-${id}`
+                )
+            ) || 0;
+
+        botao.querySelector(
+            "span"
+        ).textContent = quantidade;
+
+        if (
+            localStorage.getItem(
+                `ipiranga-like-${id}`
+            ) === "true"
+        ) {
+
+            botao.classList.add(
+                "liked"
+            );
+        }
+    }
+
+    mostrarComentarios(id);
+}
+
+
+// ========================================
+// FORMATAR DATA
+// ========================================
+
+function formatarData(data) {
+
+    if (!data) {
+        return "Data não informada";
+    }
+
+    const dataObj =
+        new Date(data);
+
+    if (isNaN(dataObj.getTime())) {
+        return escaparHTML(data);
+    }
+
+    return dataObj.toLocaleDateString(
+        "pt-BR",
+        {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric"
+        }
+    );
+}
+
+
+// ========================================
+// PROTEÇÃO CONTRA HTML
+// ========================================
+
+function escaparHTML(texto) {
+
+    const div =
+        document.createElement("div");
+
+    div.textContent =
+        String(texto);
+
+    return div.innerHTML;
+}
+
+
+// ========================================
+// INICIAR
+// ========================================
+
+carregarPosts();
