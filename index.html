@@ -11,20 +11,212 @@
 
 <body>
 
-    <header>
-        <h1>Ipiranga 24h</h1>
-        <p>Informações e novidades da Ipiranga</p>
-    </header>
+    <!-- =========================
+         TELA DE ACESSO
+    ========================== -->
 
-    <main>
-        <section class="feed">
+    <section id="tela-acesso" class="tela-acesso">
 
-            <div id="posts">
-                <!-- As publicações aparecerão aqui -->
+        <div class="caixa-acesso">
+
+            <div class="logo-ipiranga">
+                Ipiranga
             </div>
 
-        </section>
-    </main>
+            <h1>Ipiranga 24h</h1>
+
+            <p>
+                Informações, novidades e comunicados
+                em um só lugar.
+            </p>
+
+            <button
+                class="botao-principal"
+                onclick="entrar()"
+            >
+                Entrar
+            </button>
+
+            <button
+                class="botao-visitante"
+                onclick="continuarComoVisitante()"
+            >
+                Continuar como visitante
+            </button>
+
+            <small>
+                Você poderá acessar como visitante
+                sem informar CPF.
+            </small>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================
+         ÁREA PRINCIPAL DO SITE
+    ========================== -->
+
+    <div id="site" class="site" style="display: none;">
+
+        <header>
+
+            <div class="topo">
+
+                <div>
+                    <h1>Ipiranga 24h</h1>
+                    <p>
+                        Informações e novidades da Ipiranga
+                    </p>
+                </div>
+
+                <button
+                    class="botao-sair"
+                    onclick="sair()"
+                >
+                    Sair
+                </button>
+
+            </div>
+
+        </header>
+
+
+        <main>
+
+            <!-- Informação sobre o tipo de acesso -->
+
+            <div
+                id="tipo-acesso"
+                class="tipo-acesso"
+            >
+            </div>
+
+
+            <!-- Feed -->
+
+            <section class="feed">
+
+                <div id="posts">
+
+                    <div class="loading">
+                        Carregando informações...
+                    </div>
+
+                </div>
+
+            </section>
+
+        </main>
+
+    </div>
+
+
+    <!-- =========================
+         JAVASCRIPT
+    ========================== -->
+
+    <script>
+
+        // --------------------------------
+        // ENTRAR
+        // --------------------------------
+
+        function entrar() {
+
+            alert(
+                "A área de login será adicionada posteriormente."
+            );
+
+        }
+
+
+        // --------------------------------
+        // CONTINUAR COMO VISITANTE
+        // --------------------------------
+
+        function continuarComoVisitante() {
+
+            localStorage.setItem(
+                "tipoAcesso",
+                "visitante"
+            );
+
+            mostrarSite();
+
+        }
+
+
+        // --------------------------------
+        // MOSTRAR SITE
+        // --------------------------------
+
+        function mostrarSite() {
+
+            document.getElementById(
+                "tela-acesso"
+            ).style.display = "none";
+
+            document.getElementById(
+                "site"
+            ).style.display = "block";
+
+            document.getElementById(
+                "tipo-acesso"
+            ).innerHTML =
+                "👤 Você está navegando como visitante.";
+
+        }
+
+
+        // --------------------------------
+        // SAIR
+        // --------------------------------
+
+        function sair() {
+
+            localStorage.removeItem(
+                "tipoAcesso"
+            );
+
+            document.getElementById(
+                "site"
+            ).style.display = "none";
+
+            document.getElementById(
+                "tela-acesso"
+            ).style.display = "flex";
+
+        }
+
+
+        // --------------------------------
+        // VERIFICAR ACESSO ANTERIOR
+        // --------------------------------
+
+        window.addEventListener(
+            "load",
+            function () {
+
+                const tipo =
+                    localStorage.getItem(
+                        "tipoAcesso"
+                    );
+
+                if (tipo === "visitante") {
+
+                    mostrarSite();
+
+                }
+
+            }
+        );
+
+    </script>
+
+
+    <!-- SCRIPT PRINCIPAL -->
 
     <script src="script.js"></script>
 
