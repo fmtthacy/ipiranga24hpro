@@ -1,1 +1,20 @@
-[]
+[
+  {
+    "titulo": "Ipiranga está de cara nova",
+    "descricao": "A Ipiranga apresentou uma nova identidade visual, mantendo elementos reconhecidos da marca e trazendo uma proposta mais moderna.",
+    "fonte": "Ipiranga",
+    "link": "https://www.ipiranga.com.br/"
+  },
+  {
+    "titulo": "Abastecer a Vida em Movimento",
+    "descricao": "A nova fase da Ipiranga apresenta o propósito da marca: Abastecer a Vida em Movimento.",
+    "fonte": "Ipiranga",
+    "link": "https://www.ipiranga.com.br/"
+  },
+  {
+    "titulo": "Sobre a Ipiranga",
+    "descricao": "Conheça a história da Ipiranga, sua trajetória e os principais momentos da evolução da empresa.",
+    "fonte": "Ipiranga",
+    "link": "https://www.ipiranga.com.br/"
+  }
+]
