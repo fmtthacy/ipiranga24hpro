@@ -8,17 +8,15 @@ import requests
 from bs4 import BeautifulSoup
 
 
-# ============================================================
-# CONFIGURAÇÕES
-# ============================================================
+URL_BASE = "https://www.ipiranga.com.br"
 
-URL_IPIRANGA = (
+URL_SALA_IMPRENSA = (
     "https://www.ipiranga.com.br/wps/portal/pt-br/"
     "ipiranga/a-ipiranga/institucional/sala-de-imprensa/todas-as-materias"
 )
 
-ARQUIVO_DADOS = Path("data.json")
-LIMITE_MATERIAS = 50
+ARQUIVO = Path("data.json")
+LIMITE = 50
 
 HEADERS = {
     "User-Agent": (
@@ -28,263 +26,291 @@ HEADERS = {
     )
 }
 
-MESES = {
-    "jan": 1,
-    "fev": 2,
-    "mar": 3,
-    "abr": 4,
-    "mai": 5,
-    "jun": 6,
-    "jul": 7,
-    "ago": 8,
-    "set": 9,
-    "out": 10,
-    "nov": 11,
-    "dez": 12,
-}
 
-
-# ============================================================
-# FUNÇÕES
-# ============================================================
-
-def limpar_texto(texto):
+def limpar(texto):
     if not texto:
         return ""
-
-    texto = re.sub(r"\s+", " ", texto)
-    return texto.strip()
+    return re.sub(r"\s+", " ", texto).strip()
 
 
-def data_para_timestamp(data):
-    try:
-        return datetime.strptime(data, "%d/%m/%Y").timestamp()
-    except Exception:
-        return 0
-
-
-def encontrar_data(texto):
-    if not texto:
+def converter_data(data):
+    if not data:
         return None
 
-    # Procura DD/MM/YYYY
-    resultado = re.search(r"\b(\d{2})/(\d{2})/(\d{4})\b", texto)
+    data = limpar(data)
 
-    if resultado:
-        dia, mes, ano = resultado.groups()
-        return f"{dia}/{mes}/{ano}"
-
-    # Procura datas no formato:
-    # 10 set 2026
-    # 03/09/2026
+    # DD/MM/YYYY
     resultado = re.search(
-        r"\b(\d{1,2})\s+"
-        r"(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)"
-        r"(?:\s+de)?\s+(\d{4})\b",
-        texto.lower(),
+        r"\b(\d{1,2})/(\d{1,2})/(\d{4})\b",
+        data
     )
 
     if resultado:
         dia, mes, ano = resultado.groups()
-        numero_mes = MESES[mes]
-        return f"{int(dia):02d}/{numero_mes:02d}/{ano}"
+        return f"{int(dia):02d}/{int(mes):02d}/{ano}"
+
+    # YYYY-MM-DD
+    resultado = re.search(
+        r"\b(\d{4})-(\d{2})-(\d{2})\b",
+        data
+    )
+
+    if resultado:
+        ano, mes, dia = resultado.groups()
+        return f"{dia}/{mes}/{ano}"
 
     return None
 
 
-def obter_soup(url):
+def obter_pagina(url):
     resposta = requests.get(
         url,
         headers=HEADERS,
-        timeout=30,
+        timeout=30
     )
 
     resposta.raise_for_status()
 
-    return BeautifulSoup(resposta.text, "html.parser")
+    return BeautifulSoup(
+        resposta.text,
+        "html.parser"
+    )
 
 
-def extrair_links_materias(soup):
+def encontrar_materias(soup):
+
     materias = []
-    vistos = set()
+    links_vistos = set()
 
-    for a in soup.find_all("a", href=True):
+    for link in soup.find_all("a", href=True):
 
-        href = a.get("href", "").strip()
+        href = link["href"].strip()
 
-        if "/materias/" not in href:
-            continue
-
-        url = urljoin(URL_IPIRANGA, href)
-
-        if url in vistos:
-            continue
-
-        titulo = limpar_texto(a.get_text(" ", strip=True))
-
-        # Ignora links sem título útil
-        if len(titulo) < 10:
-            continue
-
-        vistos.add(url)
-
-        materias.append(
-            {
-                "titulo": titulo,
-                "url": url,
-            }
+        url = urljoin(
+            URL_BASE,
+            href
         )
+
+        texto = limpar(
+            link.get_text(
+                " ",
+                strip=True
+            )
+        )
+
+        if not texto:
+            continue
+
+        # Aceita diferentes formatos de URL
+        # usados dentro da Sala de Imprensa.
+        parece_materia = any(
+            termo in url.lower()
+            for termo in [
+                "/materias/",
+                "/materia/",
+                "materias",
+                "imprensa"
+            ]
+        )
+
+        if not parece_materia:
+            continue
+
+        if url in links_vistos:
+            continue
+
+        # Evita links genéricos da página
+        if url.rstrip("/") == URL_SALA_IMPRENSA.rstrip("/"):
+            continue
+
+        links_vistos.add(url)
+
+        materias.append({
+            "titulo": texto,
+            "url": url
+        })
 
     return materias
 
 
-def extrair_materia(url, titulo_lista):
+def extrair_materia(url, titulo_inicial):
+
     try:
-        soup = obter_soup(url)
+        soup = obter_pagina(url)
 
     except Exception as erro:
-        print(f"Não foi possível abrir: {url}")
+        print("Erro ao abrir:", url)
         print(erro)
         return None
 
-    titulo = titulo_lista
-
-    # --------------------------------------------------------
-    # TÍTULO
-    # --------------------------------------------------------
-
-    meta_title = soup.find("meta", attrs={"property": "og:title"})
-
-    if meta_title and meta_title.get("content"):
-        titulo = limpar_texto(meta_title["content"])
-
-    elif soup.find("h1"):
-        titulo = limpar_texto(
-            soup.find("h1").get_text(" ", strip=True)
-        )
-
-    # --------------------------------------------------------
-    # DESCRIÇÃO
-    # --------------------------------------------------------
-
+    titulo = titulo_inicial
     descricao = ""
+    data = None
 
-    meta_description = soup.find(
+    # -------------------------------
+    # TÍTULO
+    # -------------------------------
+
+    og_title = soup.find(
         "meta",
-        attrs={"name": "description"}
+        attrs={
+            "property": "og:title"
+        }
     )
 
-    if meta_description and meta_description.get("content"):
-        descricao = limpar_texto(
-            meta_description["content"]
+    if og_title and og_title.get("content"):
+        titulo = limpar(
+            og_title["content"]
+        )
+
+    if soup.find("h1"):
+        texto_h1 = limpar(
+            soup.find("h1").get_text(
+                " ",
+                strip=True
+            )
+        )
+
+        if len(texto_h1) > 10:
+            titulo = texto_h1
+
+    # -------------------------------
+    # DESCRIÇÃO
+    # -------------------------------
+
+    meta = soup.find(
+        "meta",
+        attrs={
+            "name": "description"
+        }
+    )
+
+    if meta and meta.get("content"):
+        descricao = limpar(
+            meta["content"]
         )
 
     if not descricao:
-        meta_og = soup.find(
+
+        meta = soup.find(
             "meta",
-            attrs={"property": "og:description"}
+            attrs={
+                "property": "og:description"
+            }
         )
 
-        if meta_og and meta_og.get("content"):
-            descricao = limpar_texto(
-                meta_og["content"]
+        if meta and meta.get("content"):
+            descricao = limpar(
+                meta["content"]
             )
 
-    # --------------------------------------------------------
+    # -------------------------------
     # DATA
-    # --------------------------------------------------------
+    # -------------------------------
 
-    data = None
-
-    # Tenta JSON-LD
+    # Primeiro tenta JSON-LD
     for script in soup.find_all(
         "script",
-        attrs={"type": "application/ld+json"}
+        attrs={
+            "type": "application/ld+json"
+        }
     ):
 
         try:
-            conteudo = script.string
 
-            if not conteudo:
+            if not script.string:
                 continue
 
-            dados = json.loads(conteudo)
+            dados = json.loads(
+                script.string
+            )
 
             if isinstance(dados, dict):
-                lista = [dados]
+                dados = [dados]
 
-            elif isinstance(dados, list):
-                lista = dados
+            if not isinstance(dados, list):
+                continue
 
-            else:
-                lista = []
-
-            for item in lista:
+            for item in dados:
 
                 if not isinstance(item, dict):
                     continue
 
-                data_publicacao = (
+                valor = (
                     item.get("datePublished")
                     or item.get("dateCreated")
+                    or item.get("dateModified")
                 )
 
-                if data_publicacao:
-                    try:
-                        data_obj = datetime.fromisoformat(
-                            data_publicacao.replace("Z", "+00:00")
-                        )
+                if valor:
 
-                        data = data_obj.strftime("%d/%m/%Y")
+                    data = converter_data(
+                        str(valor)
+                    )
+
+                    if data:
                         break
 
-                    except Exception:
-                        pass
+            if data:
+                break
 
         except Exception:
             pass
 
-    # --------------------------------------------------------
-    # Se não encontrou, procura no texto da página
-    # --------------------------------------------------------
+    # -------------------------------
+    # Procura a data no texto
+    # -------------------------------
 
     if not data:
 
-        texto_pagina = limpar_texto(
-            soup.get_text(" ", strip=True)
+        texto = limpar(
+            soup.get_text(
+                " ",
+                strip=True
+            )
         )
 
-        data = encontrar_data(texto_pagina)
+        data = converter_data(texto)
 
-    # --------------------------------------------------------
-    # DESCRIÇÃO DE SEGURANÇA
-    # --------------------------------------------------------
+    # -------------------------------
+    # Descrição alternativa
+    # -------------------------------
 
     if not descricao:
 
-        paragrafos = []
+        for paragrafo in soup.find_all("p"):
 
-        for p in soup.find_all("p"):
-
-            texto = limpar_texto(
-                p.get_text(" ", strip=True)
+            texto = limpar(
+                paragrafo.get_text(
+                    " ",
+                    strip=True
+                )
             )
 
-            if len(texto) > 80:
-                paragrafos.append(texto)
+            if len(texto) >= 80:
 
-        if paragrafos:
-            descricao = paragrafos[0]
+                descricao = texto
+                break
 
     if not descricao:
-        descricao = "Confira a publicação completa no site oficial da Ipiranga."
 
-    # --------------------------------------------------------
-    # DATA FINAL
-    # --------------------------------------------------------
+        descricao = (
+            "Confira a publicação completa "
+            "no site oficial da Ipiranga."
+        )
+
+    # -------------------------------
+    # Se não encontrou data,
+    # não salva a matéria.
+    # -------------------------------
 
     if not data:
-        print(f"Data não encontrada: {titulo}")
+
+        print(
+            "Data não encontrada:",
+            titulo
+        )
+
         return None
 
     return {
@@ -292,23 +318,19 @@ def extrair_materia(url, titulo_lista):
         "descricao": descricao,
         "data": data,
         "fonte": "Ipiranga",
-        "link": url,
+        "link": url
     }
 
 
-# ============================================================
-# CARREGAR DADOS EXISTENTES
-# ============================================================
+def carregar_existentes():
 
-def carregar_dados_existentes():
-
-    if not ARQUIVO_DADOS.exists():
+    if not ARQUIVO.exists():
         return []
 
     try:
 
         with open(
-            ARQUIVO_DADOS,
+            ARQUIVO,
             "r",
             encoding="utf-8"
         ) as arquivo:
@@ -320,94 +342,111 @@ def carregar_dados_existentes():
 
     except Exception as erro:
 
-        print("Erro ao ler data.json:")
+        print("Erro lendo data.json:")
         print(erro)
 
     return []
 
 
-# ============================================================
-# EXECUÇÃO PRINCIPAL
-# ============================================================
-
-def main():
-
-    print("======================================")
-    print("IPIRANGA 24H - ATUALIZAÇÃO AUTOMÁTICA")
-    print("======================================")
-
-    dados_antigos = carregar_dados_existentes()
-
-    print(
-        f"Matérias já salvas: {len(dados_antigos)}"
-    )
-
-    # --------------------------------------------------------
-    # ABRE A SALA DE IMPRENSA
-    # --------------------------------------------------------
-
-    print("Consultando a Sala de Imprensa da Ipiranga...")
+def data_numero(data):
 
     try:
 
-        soup = obter_soup(URL_IPIRANGA)
-
-    except Exception as erro:
-
-        print("ERRO ao acessar o site da Ipiranga:")
-        print(erro)
-
-        print(
-            "Os dados antigos foram preservados."
+        return datetime.strptime(
+            data,
+            "%d/%m/%Y"
         )
 
-        return
+    except Exception:
 
-    # --------------------------------------------------------
-    # ENCONTRA AS MATÉRIAS
-    # --------------------------------------------------------
+        return datetime.min
 
-    links = extrair_links_materias(soup)
+
+def main():
+
+    print("")
+    print("==============================")
+    print("IPIRANGA 24H")
+    print("Atualização automática")
+    print("==============================")
+    print("")
+
+    antigas = carregar_existentes()
 
     print(
-        f"Links de matérias encontrados: {len(links)}"
+        "Matérias já existentes:",
+        len(antigas)
     )
 
-    if not links:
+    # Mantém tudo que já existe
+    por_link = {}
 
-        print(
-            "Nenhuma matéria foi encontrada."
-        )
-
-        print(
-            "Nada será alterado para evitar apagar "
-            "as informações existentes."
-        )
-
-        return
-
-    # --------------------------------------------------------
-    # CRIA MAPA DAS MATÉRIAS ANTIGAS
-    # --------------------------------------------------------
-
-    materias_por_link = {}
-
-    for materia in dados_antigos:
+    for materia in antigas:
 
         link = materia.get("link")
 
         if link:
-            materias_por_link[link] = materia
+            por_link[link] = materia
 
-    # --------------------------------------------------------
-    # CONSULTA CADA MATÉRIA
-    # --------------------------------------------------------
+    print("")
+    print(
+        "Acessando a Sala de Imprensa..."
+    )
 
-    for indice, item in enumerate(links, start=1):
+    try:
+
+        soup = obter_pagina(
+            URL_SALA_IMPRENSA
+        )
+
+    except Exception as erro:
+
+        print("")
+        print(
+            "ERRO: não foi possível acessar "
+            "a Ipiranga."
+        )
+        print(erro)
+
+        print("")
+        print(
+            "O data.json NÃO será alterado."
+        )
+
+        return
+
+    materias = encontrar_materias(
+        soup
+    )
+
+    print(
+        "Links encontrados:",
+        len(materias)
+    )
+
+    if not materias:
+
+        print("")
+        print(
+            "Nenhuma matéria encontrada."
+        )
+        print(
+            "O data.json NÃO será alterado."
+        )
+
+        return
+
+    print("")
+
+    novas = 0
+
+    # Limita a quantidade consultada
+    # para evitar excesso de requisições.
+    for item in materias[:30]:
 
         print(
-            f"[{indice}/{len(links)}] "
-            f"{item['titulo']}"
+            "Consultando:",
+            item["titulo"]
         )
 
         materia = extrair_materia(
@@ -418,83 +457,82 @@ def main():
         if not materia:
             continue
 
-        materias_por_link[
-            materia["link"]
-        ] = materia
+        link = materia["link"]
 
-    # --------------------------------------------------------
-    # TRANSFORMA EM LISTA
-    # --------------------------------------------------------
+        if link not in por_link:
+            novas += 1
 
-    materias = list(
-        materias_por_link.values()
+        por_link[link] = materia
+
+    # -------------------------------
+    # Junta antigas + novas
+    # -------------------------------
+
+    resultado = list(
+        por_link.values()
     )
 
-    # --------------------------------------------------------
-    # REMOVE DATAS INVÁLIDAS
-    # --------------------------------------------------------
+    # -------------------------------
+    # Ordena da mais nova
+    # para a mais antiga
+    # -------------------------------
 
-    materias_validas = []
-
-    for materia in materias:
-
-        if materia.get("data"):
-            materias_validas.append(materia)
-
-    materias = materias_validas
-
-    # --------------------------------------------------------
-    # ORDENA DA MAIS NOVA PARA A MAIS ANTIGA
-    # --------------------------------------------------------
-
-    materias.sort(
-        key=lambda item: data_para_timestamp(
+    resultado.sort(
+        key=lambda item: data_numero(
             item.get("data", "")
         ),
-        reverse=True,
+        reverse=True
     )
 
-    # --------------------------------------------------------
-    # LIMITA A QUANTIDADE
-    # --------------------------------------------------------
+    # -------------------------------
+    # Mantém no máximo 50
+    # -------------------------------
 
-    materias = materias[:LIMITE_MATERIAS]
+    resultado = resultado[:LIMITE]
 
-    # --------------------------------------------------------
-    # ADICIONA IDs
-    # --------------------------------------------------------
+    # -------------------------------
+    # IDs
+    # -------------------------------
 
-    for indice, materia in enumerate(
-        materias,
+    for numero, materia in enumerate(
+        resultado,
         start=1
     ):
-        materia["id"] = indice
+        materia["id"] = numero
 
-    # --------------------------------------------------------
-    # SALVA
-    # --------------------------------------------------------
+    # -------------------------------
+    # Salva
+    # -------------------------------
 
     with open(
-        ARQUIVO_DADOS,
+        ARQUIVO,
         "w",
         encoding="utf-8"
     ) as arquivo:
 
         json.dump(
-            materias,
+            resultado,
             arquivo,
             ensure_ascii=False,
-            indent=2,
+            indent=2
         )
 
         arquivo.write("\n")
 
-    print("--------------------------------------")
+    print("")
+    print("==============================")
     print(
-        f"Atualização concluída: "
-        f"{len(materias)} matérias."
+        "ATUALIZAÇÃO CONCLUÍDA!"
     )
-    print("--------------------------------------")
+    print(
+        "Total de matérias:",
+        len(resultado)
+    )
+    print(
+        "Novas matérias:",
+        novas
+    )
+    print("==============================")
 
 
 if __name__ == "__main__":
