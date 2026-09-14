@@ -1,224 +1,140 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Ipiranga 24h</title>
+  <title>Ipiranga 24h</title>
 
-    <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-    <!-- =========================
-         TELA DE ACESSO
-    ========================== -->
+  <!-- TELA INICIAL -->
+  <section id="loginScreen" class="login-screen">
 
-    <section id="tela-acesso" class="tela-acesso">
+    <div class="login-card">
 
-        <div class="caixa-acesso">
+      <div class="logo-area">
+        <img
+          src="Screenshot_2026-09-14-13-41-10-437_com.openai.chatgpt-edit.jpg"
+          alt="Logo Ipiranga"
+          class="logo-ipiranga"
+        >
+      </div>
 
-            <div class="logo-ipiranga">
-                Ipiranga
-            </div>
+      <h1>Ipiranga 24h</h1>
 
-            <h1>Ipiranga 24h</h1>
+      <p>
+        Informações, novidades e comunicados em um só lugar.
+      </p>
 
-            <p>
-                Informações, novidades e comunicados
-                em um só lugar.
-            </p>
+      <button class="btn-primary" onclick="entrar()">
+        Entrar
+      </button>
 
-            <button
-                class="botao-principal"
-                onclick="entrar()"
-            >
-                Entrar
-            </button>
+      <button class="btn-secondary" onclick="entrarComoVisitante()">
+        Continuar como visitante
+      </button>
 
-            <button
-                class="botao-visitante"
-                onclick="continuarComoVisitante()"
-            >
-                Continuar como visitante
-            </button>
-
-            <small>
-                Você poderá acessar como visitante
-                sem informar CPF.
-            </small>
-
-        </div>
-
-    </section>
-
-
-    <!-- =========================
-         ÁREA PRINCIPAL DO SITE
-    ========================== -->
-
-    <div id="site" class="site" style="display: none;">
-
-        <header>
-
-            <div class="topo">
-
-                <div>
-                    <h1>Ipiranga 24h</h1>
-                    <p>
-                        Informações e novidades da Ipiranga
-                    </p>
-                </div>
-
-                <button
-                    class="botao-sair"
-                    onclick="sair()"
-                >
-                    Sair
-                </button>
-
-            </div>
-
-        </header>
-
-
-        <main>
-
-            <!-- Informação sobre o tipo de acesso -->
-
-            <div
-                id="tipo-acesso"
-                class="tipo-acesso"
-            >
-            </div>
-
-
-            <!-- Feed -->
-
-            <section class="feed">
-
-                <div id="posts">
-
-                    <div class="loading">
-                        Carregando informações...
-                    </div>
-
-                </div>
-
-            </section>
-
-        </main>
+      <small>
+        Você poderá acessar como visitante sem informar CPF.
+      </small>
 
     </div>
 
-
-    <!-- =========================
-         JAVASCRIPT
-    ========================== -->
-
-    <script>
-
-        // --------------------------------
-        // ENTRAR
-        // --------------------------------
-
-        function entrar() {
-
-            alert(
-                "A área de login será adicionada posteriormente."
-            );
-
-        }
+  </section>
 
 
-        // --------------------------------
-        // CONTINUAR COMO VISITANTE
-        // --------------------------------
+  <!-- SITE -->
+  <main id="site" style="display:none;">
 
-        function continuarComoVisitante() {
+    <header class="topbar">
 
-            localStorage.setItem(
-                "tipoAcesso",
-                "visitante"
-            );
+      <div class="brand">
+        <img
+          src="Screenshot_2026-09-14-13-41-10-437_com.openai.chatgpt-edit.jpg"
+          alt="Ipiranga"
+          class="logo-header"
+        >
 
-            mostrarSite();
+        <div>
+          <h2>Ipiranga 24h</h2>
+          <span>Informações e novidades da Ipiranga</span>
+        </div>
+      </div>
 
-        }
+      <button class="btn-sair" onclick="sair()">
+        Sair
+      </button>
 
-
-        // --------------------------------
-        // MOSTRAR SITE
-        // --------------------------------
-
-        function mostrarSite() {
-
-            document.getElementById(
-                "tela-acesso"
-            ).style.display = "none";
-
-            document.getElementById(
-                "site"
-            ).style.display = "block";
-
-            document.getElementById(
-                "tipo-acesso"
-            ).innerHTML =
-                "👤 Você está navegando como visitante.";
-
-        }
+    </header>
 
 
-        // --------------------------------
-        // SAIR
-        // --------------------------------
-
-        function sair() {
-
-            localStorage.removeItem(
-                "tipoAcesso"
-            );
-
-            document.getElementById(
-                "site"
-            ).style.display = "none";
-
-            document.getElementById(
-                "tela-acesso"
-            ).style.display = "flex";
-
-        }
+    <div class="linha-amarela"></div>
 
 
-        // --------------------------------
-        // VERIFICAR ACESSO ANTERIOR
-        // --------------------------------
-
-        window.addEventListener(
-            "load",
-            function () {
-
-                const tipo =
-                    localStorage.getItem(
-                        "tipoAcesso"
-                    );
-
-                if (tipo === "visitante") {
-
-                    mostrarSite();
-
-                }
-
-            }
-        );
-
-    </script>
+    <section class="aviso-visitante">
+      👤 Você está navegando como visitante.
+    </section>
 
 
-    <!-- SCRIPT PRINCIPAL -->
+    <section class="conteudo">
 
-    <script src="script.js"></script>
+      <h1>Últimas informações</h1>
+
+      <p class="subtitulo">
+        Confira as publicações e novidades.
+      </p>
+
+      <div id="posts"></div>
+
+    </section>
+
+  </main>
+
+
+  <!-- CONTROLE DA TELA -->
+  <script>
+    function entrar() {
+      alert(
+        "A área de login ainda está em desenvolvimento. Você pode continuar como visitante."
+      );
+    }
+
+    function entrarComoVisitante() {
+      document.getElementById("loginScreen").style.display = "none";
+      document.getElementById("site").style.display = "block";
+
+      localStorage.setItem("modoAcesso", "visitante");
+    }
+
+    function sair() {
+      document.getElementById("site").style.display = "none";
+      document.getElementById("loginScreen").style.display = "flex";
+
+      localStorage.removeItem("modoAcesso");
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+
+      const modo = localStorage.getItem("modoAcesso");
+
+      if (modo === "visitante") {
+        document.getElementById("loginScreen").style.display = "none";
+        document.getElementById("site").style.display = "block";
+      } else {
+        document.getElementById("loginScreen").style.display = "flex";
+        document.getElementById("site").style.display = "none";
+      }
+
+    });
+  </script>
+
+
+  <!-- SISTEMA DE PUBLICAÇÕES -->
+  <script src="script.js"></script>
 
 </body>
 </html>
