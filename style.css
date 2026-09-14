@@ -16,7 +16,7 @@ body {
 }
 
 /* =========================
-   TELA INICIAL
+   LOGIN
 ========================= */
 
 .login-screen {
@@ -30,7 +30,7 @@ body {
 
 .login-card {
   width: min(420px, 100%);
-  background: #ffffff;
+  background: white;
   border-radius: 26px;
   padding: 32px 24px;
   text-align: center;
@@ -114,7 +114,9 @@ body {
   background: #f3f6fa;
 }
 
-/* CABEÇALHO */
+/* =========================
+   TOPO
+========================= */
 
 .topbar {
   background: #0057b8;
@@ -166,7 +168,9 @@ body {
   font-weight: bold;
 }
 
-/* LINHA AMARELA */
+.btn-sair:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
 
 .linha-amarela {
   width: 100%;
@@ -174,7 +178,9 @@ body {
   background: #ffd400;
 }
 
-/* AVISO */
+/* =========================
+   AVISO
+========================= */
 
 .aviso-visitante {
   max-width: 900px;
@@ -186,7 +192,9 @@ body {
   color: #4b4b32;
 }
 
-/* CONTEÚDO */
+/* =========================
+   CONTEÚDO
+========================= */
 
 .conteudo {
   width: min(900px, 100%);
@@ -206,7 +214,7 @@ body {
 }
 
 /* =========================
-   PUBLICAÇÕES
+   POSTS
 ========================= */
 
 #posts {
@@ -215,75 +223,254 @@ body {
   margin-top: 22px;
 }
 
-.post-card {
+.post {
   background: white;
-  border-radius: 18px;
-  padding: 18px;
-  box-shadow: 0 8px 24px rgba(18, 42, 70, 0.08);
-  border: 1px solid #e5eaf0;
+  border-radius: 20px;
+  padding: 20px;
+  border: 1px solid #e3e8ef;
+  box-shadow: 0 8px 26px rgba(18, 42, 70, 0.08);
+  overflow: hidden;
 }
 
-.post-card h2 {
-  margin-top: 0;
+.post-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 15px;
+}
+
+.post-fonte {
+  color: #0057b8;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.post-data {
+  margin-left: 8px;
+  color: #8a94a3;
+  font-size: 13px;
+}
+
+.post-status {
+  background: #fff4a8;
+  color: #6b5a00;
+  border-radius: 20px;
+  padding: 6px 9px;
+  font-size: 10px;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.post h2 {
+  margin: 0 0 13px;
   color: #003b78;
+  font-size: 22px;
+  line-height: 1.3;
 }
 
-.post-card img {
+.post img {
   display: block;
   width: 100%;
   height: auto;
-  border-radius: 14px;
-  margin-bottom: 14px;
+  max-height: 430px;
+  object-fit: cover;
+  border-radius: 15px;
+  margin-bottom: 15px;
 }
 
-.post-card p {
+.post-descricao {
+  margin: 0;
   color: #4d5968;
-  line-height: 1.6;
+  font-size: 15px;
+  line-height: 1.65;
 }
 
-/* BOTÕES DAS PUBLICAÇÕES */
+/* =========================
+   AÇÕES
+========================= */
 
-.post-card button {
+.post-acoes {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 18px;
+  padding-top: 13px;
+  border-top: 1px solid #edf0f4;
+}
+
+.acao-btn {
   border: none;
   background: transparent;
-  color: #0057b8;
+  color: #536174;
+  border-radius: 10px;
+  padding: 9px 10px;
+  font-size: 14px;
   font-weight: bold;
   cursor: pointer;
-  padding: 8px;
+  transition: 0.2s;
 }
 
-.post-card button:hover {
-  color: #003b78;
+.acao-btn:hover {
+  background: #eef6ff;
+  color: #0057b8;
 }
 
-/* COMENTÁRIOS */
+.acao-btn.curtido {
+  background: #fff1f1;
+  color: #d92828;
+}
+
+.visualizacoes {
+  margin-left: auto;
+  color: #7b8796;
+  font-size: 13px;
+}
+
+/* =========================
+   COMENTÁRIOS
+========================= */
 
 .comentarios {
   margin-top: 15px;
-  padding-top: 15px;
+  padding-top: 16px;
   border-top: 1px solid #e5eaf0;
 }
 
-.comentarios input,
-.comentarios textarea {
-  width: 100%;
-  padding: 11px;
-  border: 1px solid #ccd4df;
-  border-radius: 10px;
-  outline: none;
-  font-family: Arial, Helvetica, sans-serif;
+.comentarios h3 {
+  margin: 0 0 12px;
+  color: #003b78;
+  font-size: 17px;
 }
 
-.comentarios input:focus,
+.comentarios textarea {
+  width: 100%;
+  min-height: 90px;
+  resize: vertical;
+  padding: 12px;
+  border: 1px solid #ccd4df;
+  border-radius: 11px;
+  outline: none;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 14px;
+}
+
 .comentarios textarea:focus {
   border-color: #0057b8;
+  box-shadow: 0 0 0 3px rgba(0, 87, 184, 0.08);
 }
 
 .comentarios button {
   background: #0057b8;
   color: white;
+  border: none;
   border-radius: 10px;
+  padding: 10px 13px;
   margin-top: 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.comentarios button:hover {
+  background: #003b78;
+}
+
+.lista-comentarios {
+  display: grid;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.sem-comentarios {
+  margin: 0;
+  color: #8a94a3;
+  font-size: 13px;
+}
+
+.comentario {
+  background: #f5f7fa;
+  border-radius: 12px;
+  padding: 11px 12px;
+}
+
+.comentario strong {
+  display: block;
+  color: #003b78;
+  font-size: 13px;
+}
+
+.comentario small {
+  display: block;
+  margin-top: 2px;
+  color: #929baa;
+  font-size: 10px;
+}
+
+.comentario p {
+  margin: 7px 0 0;
+  color: #4d5968;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* =========================
+   RODAPÉ DO POST
+========================= */
+
+.post-rodape {
+  margin-top: 14px;
+}
+
+.post-rodape a {
+  color: #0057b8;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.post-rodape a:hover {
+  text-decoration: underline;
+}
+
+/* =========================
+   ESTADOS
+========================= */
+
+.carregando,
+.estado-vazio,
+.erro-posts {
+  background: white;
+  border-radius: 18px;
+  padding: 30px 20px;
+  text-align: center;
+  border: 1px solid #e3e8ef;
+}
+
+.carregando {
+  color: #0057b8;
+  font-weight: bold;
+}
+
+.estado-vazio h2,
+.erro-posts h2 {
+  margin-top: 0;
+  color: #003b78;
+}
+
+.estado-vazio p,
+.erro-posts p {
+  color: #687486;
+}
+
+.erro-posts button {
+  border: none;
+  background: #0057b8;
+  color: white;
+  border-radius: 10px;
+  padding: 11px 16px;
+  cursor: pointer;
+  font-weight: bold;
 }
 
 /* =========================
@@ -302,7 +489,7 @@ body {
   }
 
   .topbar {
-    padding: 12px;
+    padding: 11px 12px;
   }
 
   .logo-header {
@@ -325,6 +512,7 @@ body {
 
   .aviso-visitante {
     margin: 14px 12px 0;
+    font-size: 13px;
   }
 
   .conteudo {
@@ -335,8 +523,45 @@ body {
     font-size: 24px;
   }
 
-  .post-card {
+  .subtitulo {
+    font-size: 14px;
+  }
+
+  .post {
     padding: 15px;
-    border-radius: 15px;
+    border-radius: 16px;
+  }
+
+  .post-topo {
+    align-items: flex-start;
+  }
+
+  .post-status {
+    font-size: 9px;
+  }
+
+  .post h2 {
+    font-size: 19px;
+  }
+
+  .post-descricao {
+    font-size: 14px;
+  }
+
+  .post-acoes {
+    gap: 2px;
+  }
+
+  .acao-btn {
+    padding: 8px 7px;
+    font-size: 12px;
+  }
+
+  .texto-acao {
+    display: none;
+  }
+
+  .visualizacoes {
+    font-size: 12px;
   }
 }
