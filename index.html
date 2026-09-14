@@ -1,45 +1,71 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
 
   <title>Ipiranga 24h</title>
 
   <link rel="stylesheet" href="style.css">
 </head>
 
+
 <body>
 
-  <!-- TELA INICIAL -->
-  <section id="loginScreen" class="login-screen">
+  <!-- =========================
+       TELA DE ENTRADA
+  ========================== -->
+
+  <section
+    id="loginScreen"
+    class="login-screen"
+  >
 
     <div class="login-card">
 
       <div class="logo-area">
+
         <img
           src="Screenshot_2026-09-14-13-41-10-437_com.openai.chatgpt-edit.jpg"
           alt="Logo Ipiranga"
           class="logo-ipiranga"
         >
+
       </div>
+
 
       <h1>Ipiranga 24h</h1>
 
       <p>
-        Informações, novidades e comunicados em um só lugar.
+        Informações, novidades e comunicados
+        em um só lugar.
       </p>
 
-      <button class="btn-primary" onclick="entrar()">
+
+      <button
+        class="btn-primary"
+        onclick="entrar()"
+      >
         Entrar
       </button>
 
-      <button class="btn-secondary" onclick="entrarComoVisitante()">
+
+      <button
+        class="btn-secondary"
+        onclick="entrarComoVisitante()"
+      >
         Continuar como visitante
       </button>
 
+
       <small>
-        Você poderá acessar como visitante sem informar CPF.
+        Você poderá acessar como visitante
+        sem informar CPF.
       </small>
 
     </div>
@@ -47,25 +73,44 @@
   </section>
 
 
-  <!-- SITE -->
-  <main id="site" style="display:none;">
+
+  <!-- =========================
+       SITE
+  ========================== -->
+
+  <main
+    id="site"
+    style="display: none;"
+  >
 
     <header class="topbar">
 
       <div class="brand">
+
         <img
           src="Screenshot_2026-09-14-13-41-10-437_com.openai.chatgpt-edit.jpg"
           alt="Ipiranga"
           class="logo-header"
         >
 
+
         <div>
+
           <h2>Ipiranga 24h</h2>
-          <span>Informações e novidades da Ipiranga</span>
+
+          <span>
+            Informações e novidades da Ipiranga
+          </span>
+
         </div>
+
       </div>
 
-      <button class="btn-sair" onclick="sair()">
+
+      <button
+        class="btn-sair"
+        onclick="sair()"
+      >
         Sair
       </button>
 
@@ -76,17 +121,23 @@
 
 
     <section class="aviso-visitante">
+
       👤 Você está navegando como visitante.
+
     </section>
 
 
     <section class="conteudo">
 
-      <h1>Últimas informações</h1>
+      <h1>
+        Últimas informações
+      </h1>
+
 
       <p class="subtitulo">
         Confira as publicações e novidades.
       </p>
+
 
       <div id="posts"></div>
 
@@ -95,46 +146,96 @@
   </main>
 
 
-  <!-- CONTROLE DA TELA -->
+
+  <!-- =========================
+       ACESSO
+  ========================== -->
+
   <script>
+
     function entrar() {
+
       alert(
         "A área de login ainda está em desenvolvimento. Você pode continuar como visitante."
       );
+
     }
+
 
     function entrarComoVisitante() {
+
       document.getElementById("loginScreen").style.display = "none";
+
       document.getElementById("site").style.display = "block";
 
-      localStorage.setItem("modoAcesso", "visitante");
+      localStorage.setItem(
+        "modoAcesso",
+        "visitante"
+      );
+
     }
+
 
     function sair() {
+
       document.getElementById("site").style.display = "none";
+
       document.getElementById("loginScreen").style.display = "flex";
 
-      localStorage.removeItem("modoAcesso");
+      localStorage.removeItem(
+        "modoAcesso"
+      );
+
     }
 
-    document.addEventListener("DOMContentLoaded", function () {
 
-      const modo = localStorage.getItem("modoAcesso");
+    document.addEventListener(
+      "DOMContentLoaded",
+      function () {
 
-      if (modo === "visitante") {
-        document.getElementById("loginScreen").style.display = "none";
-        document.getElementById("site").style.display = "block";
-      } else {
-        document.getElementById("loginScreen").style.display = "flex";
-        document.getElementById("site").style.display = "none";
+        const modo =
+          localStorage.getItem(
+            "modoAcesso"
+          );
+
+
+        if (modo === "visitante") {
+
+          document.getElementById(
+            "loginScreen"
+          ).style.display = "none";
+
+
+          document.getElementById(
+            "site"
+          ).style.display = "block";
+
+        } else {
+
+          document.getElementById(
+            "loginScreen"
+          ).style.display = "flex";
+
+
+          document.getElementById(
+            "site"
+          ).style.display = "none";
+
+        }
+
       }
+    );
 
-    });
   </script>
 
 
-  <!-- SISTEMA DE PUBLICAÇÕES -->
-  <script src="script.js"></script>
+  <!--
+    ?v=3 força o navegador a usar
+    a versão atualizada do JavaScript.
+  -->
+
+  <script src="script.js?v=3"></script>
 
 </body>
+
 </html>
