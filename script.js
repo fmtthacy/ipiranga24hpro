@@ -43,13 +43,20 @@ async function carregarPosts() {
 
         postsContainer.innerHTML = "";
 
-        // Mistura as publicações ao atualizar a página
+        // Mantém as publicações em ordem aleatória
         const publicacoes = [...posts];
 
         publicacoes.sort(() => Math.random() - 0.5);
 
-        publicacoes.forEach(post => {
+        publicacoes.forEach((post, index) => {
+
+            // Garante que toda publicação tenha um ID
+            if (!post.id) {
+                post.id = index + 1;
+            }
+
             criarPost(post);
+
         });
 
     } catch (erro) {
@@ -80,16 +87,44 @@ function criarPost(post) {
 
     artigo.id = `post-${id}`;
 
+
+    // ====================================
+    // IMAGEM
+    // ====================================
+
     const imagem = post.imagem
         ? `
             <img
                 class="post-image"
                 src="${escaparHTML(post.imagem)}"
-                alt="${escaparHTML(post.titulo)}"
+                alt="${escaparHTML(post.titulo || "Publicação Ipiranga")}"
                 loading="lazy"
             >
         `
         : "";
+
+
+    // ====================================
+    // LINK DA PUBLICAÇÃO
+    // ====================================
+
+    const link = post.link
+        ? `
+            <a
+                class="post-link"
+                href="${escaparHTML(post.link)}"
+                target="_blank"
+                rel="noopener noreferrer"
+            >
+                Ver publicação original
+            </a>
+        `
+        : "";
+
+
+    // ====================================
+    // HTML DO POST
+    // ====================================
 
     artigo.innerHTML = `
 
@@ -111,45 +146,57 @@ function criarPost(post) {
 
         </div>
 
+
         <div class="post-content">
 
             <p class="post-description">
                 ${escaparHTML(post.descricao || "")}
             </p>
 
+            ${link}
+
         </div>
+
 
         <div class="post-actions">
 
             <button
                 class="action-button like-button"
                 onclick="curtirPost('${id}', this)"
+                type="button"
             >
                 ❤️ <span>0</span>
             </button>
 
+
             <button
                 class="action-button"
                 onclick="abrirComentarios('${id}')"
+                type="button"
             >
                 💬 <span>Comentar</span>
             </button>
 
+
             <button
                 class="action-button"
                 onclick="compartilharPost('${id}')"
+                type="button"
             >
                 🔗 <span>Compartilhar</span>
             </button>
 
+
             <button
                 class="action-button view-button"
                 disabled
+                type="button"
             >
                 👁️ <span>0</span>
             </button>
 
         </div>
+
 
         <div
             class="comments"
@@ -166,14 +213,17 @@ function criarPost(post) {
                     placeholder="Escreva um comentário..."
                 >
 
+
                 <button
                     class="comment-button"
                     onclick="adicionarComentario('${id}')"
+                    type="button"
                 >
                     Enviar
                 </button>
 
             </div>
+
 
             <div id="comment-list-${id}">
             </div>
@@ -181,37 +231,53 @@ function criarPost(post) {
         </div>
     `;
 
+
     postsContainer.appendChild(artigo);
 
+
+    // Carrega curtidas e comentários salvos
     carregarInteracoes(id);
 
+
+    // Registra visualização
     registrarVisualizacao(id);
 }
 
 
 // ========================================
-// CURTIR
+// CURTIR PUBLICAÇÃO
 // ========================================
 
 function curtirPost(id, botao) {
 
-    const chaveCurtida = `ipiranga-like-${id}`;
-    const chaveQuantidade = `ipiranga-likes-${id}`;
+    const chaveCurtida =
+        `ipiranga-like-${id}`;
+
+    const chaveQuantidade =
+        `ipiranga-likes-${id}`;
+
 
     let quantidade =
-        Number(localStorage.getItem(chaveQuantidade)) || 0;
+        Number(
+            localStorage.getItem(chaveQuantidade)
+        ) || 0;
+
 
     const jaCurtiu =
         localStorage.getItem(chaveCurtida) === "true";
 
+
     if (jaCurtiu) {
 
-        quantidade = Math.max(0, quantidade - 1);
+        quantidade =
+            Math.max(0, quantidade - 1);
+
 
         localStorage.setItem(
             chaveCurtida,
             "false"
         );
+
 
         botao.classList.remove("liked");
 
@@ -219,41 +285,58 @@ function curtirPost(id, botao) {
 
         quantidade++;
 
+
         localStorage.setItem(
             chaveCurtida,
             "true"
         );
 
+
         botao.classList.add("liked");
     }
+
 
     localStorage.setItem(
         chaveQuantidade,
         quantidade
     );
 
-    botao.querySelector("span").textContent =
-        quantidade;
+
+    const contador =
+        botao.querySelector("span");
+
+
+    if (contador) {
+        contador.textContent = quantidade;
+    }
 }
 
 
 // ========================================
-// COMENTÁRIOS
+// ABRIR COMENTÁRIOS
 // ========================================
 
 function abrirComentarios(id) {
 
     const comentarios =
-        document.getElementById(`comments-${id}`);
+        document.getElementById(
+            `comments-${id}`
+        );
+
 
     if (!comentarios) return;
 
+
     comentarios.classList.toggle("active");
+
 
     if (comentarios.classList.contains("active")) {
 
         const input =
-            document.getElementById(`input-${id}`);
+            document.getElementById(
+                `input-${id}`
+            );
+
 
         if (input) {
             input.focus();
@@ -262,41 +345,65 @@ function abrirComentarios(id) {
 }
 
 
+// ========================================
+// ADICIONAR COMENTÁRIO
+// ========================================
+
 function adicionarComentario(id) {
 
     const input =
-        document.getElementById(`input-${id}`);
+        document.getElementById(
+            `input-${id}`
+        );
+
 
     if (!input) return;
 
-    const texto = input.value.trim();
+
+    const texto =
+        input.value.trim();
+
 
     if (!texto) return;
 
+
     const chave =
         `ipiranga-comments-${id}`;
+
 
     let comentarios =
         JSON.parse(
             localStorage.getItem(chave)
         ) || [];
 
+
     comentarios.push({
+
         nome: "Visitante",
+
         texto: texto,
+
         data: new Date().toISOString()
+
     });
+
 
     localStorage.setItem(
         chave,
         JSON.stringify(comentarios)
     );
 
+
     input.value = "";
+
 
     mostrarComentarios(id);
 }
 
+
+// ========================================
+// MOSTRAR COMENTÁRIOS
+// ========================================
 
 function mostrarComentarios(id) {
 
@@ -305,7 +412,9 @@ function mostrarComentarios(id) {
             `comment-list-${id}`
         );
 
+
     if (!lista) return;
+
 
     const comentarios =
         JSON.parse(
@@ -314,16 +423,22 @@ function mostrarComentarios(id) {
             )
         ) || [];
 
+
     lista.innerHTML = "";
+
 
     comentarios.forEach(comentario => {
 
         const elemento =
             document.createElement("div");
 
-        elemento.className = "comment";
+
+        elemento.className =
+            "comment";
+
 
         elemento.innerHTML = `
+
             <strong>
                 ${escaparHTML(comentario.nome)}
             </strong>
@@ -331,7 +446,9 @@ function mostrarComentarios(id) {
             <br>
 
             ${escaparHTML(comentario.texto)}
+
         `;
+
 
         lista.appendChild(elemento);
     });
@@ -339,7 +456,7 @@ function mostrarComentarios(id) {
 
 
 // ========================================
-// VISUALIZAÇÕES
+// REGISTRAR VISUALIZAÇÃO
 // ========================================
 
 function registrarVisualizacao(id) {
@@ -347,23 +464,32 @@ function registrarVisualizacao(id) {
     const chave =
         `ipiranga-views-${id}`;
 
+
     let visualizacoes =
-        Number(localStorage.getItem(chave)) || 0;
+        Number(
+            localStorage.getItem(chave)
+        ) || 0;
+
 
     visualizacoes++;
+
 
     localStorage.setItem(
         chave,
         visualizacoes
     );
 
+
     const botao =
         document.querySelector(
             `#post-${id} .view-button span`
         );
 
+
     if (botao) {
-        botao.textContent = visualizacoes;
+
+        botao.textContent =
+            visualizacoes;
     }
 }
 
@@ -377,19 +503,26 @@ async function compartilharPost(id) {
     const url =
         `${window.location.href.split("#")[0]}#post-${id}`;
 
+
     try {
 
         if (navigator.share) {
 
             await navigator.share({
+
                 title: "Ipiranga 24h",
-                text: "Confira esta publicação no Ipiranga 24h.",
+
+                text:
+                    "Confira esta publicação no Ipiranga 24h.",
+
                 url: url
+
             });
 
         } else {
 
             await navigator.clipboard.writeText(url);
+
 
             mostrarMensagem(
                 "Link copiado!"
@@ -406,7 +539,7 @@ async function compartilharPost(id) {
 
 
 // ========================================
-// MENSAGEM
+// MOSTRAR MENSAGEM
 // ========================================
 
 function mostrarMensagem(texto) {
@@ -416,22 +549,31 @@ function mostrarMensagem(texto) {
             ".share-message"
         );
 
+
     if (!mensagem) {
 
         mensagem =
             document.createElement("div");
 
+
         mensagem.className =
             "share-message";
+
 
         document.body.appendChild(
             mensagem
         );
     }
 
-    mensagem.textContent = texto;
 
-    mensagem.classList.add("active");
+    mensagem.textContent =
+        texto;
+
+
+    mensagem.classList.add(
+        "active"
+    );
+
 
     setTimeout(() => {
 
@@ -454,6 +596,7 @@ function carregarInteracoes(id) {
             `#post-${id} .like-button`
         );
 
+
     if (botao) {
 
         const quantidade =
@@ -463,9 +606,17 @@ function carregarInteracoes(id) {
                 )
             ) || 0;
 
-        botao.querySelector(
-            "span"
-        ).textContent = quantidade;
+
+        const contador =
+            botao.querySelector("span");
+
+
+        if (contador) {
+
+            contador.textContent =
+                quantidade;
+        }
+
 
         if (
             localStorage.getItem(
@@ -478,6 +629,7 @@ function carregarInteracoes(id) {
             );
         }
     }
+
 
     mostrarComentarios(id);
 }
@@ -493,12 +645,49 @@ function formatarData(data) {
         return "Data não informada";
     }
 
+
+    // Aceita diretamente DD/MM/AAAA
+    if (
+        /^\d{2}\/\d{2}\/\d{4}$/.test(
+            String(data)
+        )
+    ) {
+
+        return escaparHTML(data);
+    }
+
+
+    // Aceita AAAA-MM-DD
+    if (
+        /^\d{4}-\d{2}-\d{2}$/.test(
+            String(data)
+        )
+    ) {
+
+        const partes =
+            String(data).split("-");
+
+
+        return `
+            ${partes[2]}/${partes[1]}/${partes[0]}
+        `;
+    }
+
+
+    // Tenta interpretar outros formatos
     const dataObj =
         new Date(data);
 
-    if (isNaN(dataObj.getTime())) {
+
+    if (
+        isNaN(
+            dataObj.getTime()
+        )
+    ) {
+
         return escaparHTML(data);
     }
+
 
     return dataObj.toLocaleDateString(
         "pt-BR",
@@ -520,8 +709,10 @@ function escaparHTML(texto) {
     const div =
         document.createElement("div");
 
+
     div.textContent =
         String(texto);
+
 
     return div.innerHTML;
 }
