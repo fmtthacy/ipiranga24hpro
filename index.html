@@ -11,19 +11,22 @@
 
   <title>Ipiranga 24h</title>
 
-  <link rel="stylesheet" href="style.css">
+  <link
+    rel="stylesheet"
+    href="style.css?v=5"
+  >
 </head>
 
 
 <body>
 
-  <!-- =========================
-       TELA DE ENTRADA
-  ========================== -->
+  <!-- ==================================================
+       TELA INICIAL
+       ================================================== -->
 
   <section
-    id="loginScreen"
     class="login-screen"
+    id="login-screen"
   >
 
     <div class="login-card">
@@ -31,9 +34,9 @@
       <div class="logo-area">
 
         <img
-          src="Screenshot_2026-09-14-13-41-10-437_com.openai.chatgpt-edit.jpg"
-          alt="Logo Ipiranga"
           class="logo-ipiranga"
+          src="Screenshot_2026-09-14-13-41-10-437_com.openai.chatgpt-edit.jpg"
+          alt="Ipiranga"
         >
 
       </div>
@@ -41,14 +44,13 @@
 
       <h1>Ipiranga 24h</h1>
 
-      <p>
-        Informações, novidades e comunicados
-        em um só lugar.
+      <p class="login-subtitulo">
+        Informações e novidades da Ipiranga
       </p>
 
 
       <button
-        class="btn-primary"
+        class="botao-login"
         onclick="entrar()"
       >
         Entrar
@@ -56,17 +58,16 @@
 
 
       <button
-        class="btn-secondary"
+        class="botao-visitante"
         onclick="entrarComoVisitante()"
       >
         Continuar como visitante
       </button>
 
 
-      <small>
-        Você poderá acessar como visitante
-        sem informar CPF.
-      </small>
+      <p class="texto-visitante">
+        Você poderá acessar como visitante sem informar CPF.
+      </p>
 
     </div>
 
@@ -74,14 +75,17 @@
 
 
 
-  <!-- =========================
-       SITE
-  ========================== -->
+  <!-- ==================================================
+       SITE PRINCIPAL
+       ================================================== -->
 
-  <main
+  <div
     id="site"
     style="display: none;"
   >
+
+
+    <!-- CABEÇALHO -->
 
     <header class="topbar">
 
@@ -90,16 +94,14 @@
         <img
           src="Screenshot_2026-09-14-13-41-10-437_com.openai.chatgpt-edit.jpg"
           alt="Ipiranga"
-          class="logo-header"
         >
-
 
         <div>
 
-          <h2>Ipiranga 24h</h2>
+          <h1>Ipiranga 24h</h1>
 
           <span>
-            Informações e novidades da Ipiranga
+            Informações e novidades
           </span>
 
         </div>
@@ -117,125 +119,83 @@
     </header>
 
 
+
+    <!-- LINHA AMARELA -->
+
     <div class="linha-amarela"></div>
 
 
-    <section class="aviso-visitante">
 
-      👤 Você está navegando como visitante.
+    <!-- CONTEÚDO -->
 
-    </section>
-
-
-    <section class="conteudo">
-
-      <h1>
-        Últimas informações
-      </h1>
+    <main class="conteudo">
 
 
-      <p class="subtitulo">
-        Confira as publicações e novidades.
-      </p>
+      <!-- AVISO DO USUÁRIO -->
 
+      <div class="aviso-visitante">
 
-      <div id="posts"></div>
+        👤 Você está navegando como visitante.
 
-    </section>
-
-  </main>
+      </div>
 
 
 
-  <!-- =========================
-       ACESSO
-  ========================== -->
+      <!-- TÍTULO -->
 
-  <script>
+      <section class="cabecalho-conteudo">
 
-    function entrar() {
+        <h2>
+          Últimas informações
+        </h2>
 
-      alert(
-        "A área de login ainda está em desenvolvimento. Você pode continuar como visitante."
-      );
+        <p>
+          Confira as publicações e novidades.
+        </p>
 
-    }
-
-
-    function entrarComoVisitante() {
-
-      document.getElementById("loginScreen").style.display = "none";
-
-      document.getElementById("site").style.display = "block";
-
-      localStorage.setItem(
-        "modoAcesso",
-        "visitante"
-      );
-
-    }
+      </section>
 
 
-    function sair() {
 
-      document.getElementById("site").style.display = "none";
+      <!-- POSTS -->
 
-      document.getElementById("loginScreen").style.display = "flex";
+      <section
+        id="posts"
+        class="posts"
+      >
 
-      localStorage.removeItem(
-        "modoAcesso"
-      );
+        <div class="carregando">
 
-    }
+          Carregando informações...
 
+        </div>
 
-    document.addEventListener(
-      "DOMContentLoaded",
-      function () {
-
-        const modo =
-          localStorage.getItem(
-            "modoAcesso"
-          );
+      </section>
 
 
-        if (modo === "visitante") {
+    </main>
 
-          document.getElementById(
-            "loginScreen"
-          ).style.display = "none";
+  </div>
 
 
-          document.getElementById(
-            "site"
-          ).style.display = "block";
 
-        } else {
+  <!-- ==================================================
+       SUPABASE
+       ================================================== -->
 
-          document.getElementById(
-            "loginScreen"
-          ).style.display = "flex";
-
-
-          document.getElementById(
-            "site"
-          ).style.display = "none";
-
-        }
-
-      }
-    );
-
-  </script>
+  <script
+    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"
+  ></script>
 
 
-  <!--
-    ?v=3 força o navegador a usar
-    a versão atualizada do JavaScript.
-  -->
+  <!-- ==================================================
+       JAVASCRIPT DO SITE
+       ================================================== -->
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="script.js?v=4"></script>
+  <script
+    src="script.js?v=5"
+  ></script>
+
 
 </body>
 
