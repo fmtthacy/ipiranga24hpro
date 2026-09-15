@@ -1,774 +1,3 @@
-);
-
-
-  mostrarSite();
-}
-
-
-// =====================================================
-// SAIR
-// =====================================================
-
-async function sair() {
-
-  await supabaseClient.auth.signOut();
-
-  usuarioAtual = null;
-
-  localStorage.removeItem(
-    "modoAcesso"
-  );
-
-
-  const site =
-    document.getElementById(
-      "site"
-    );
-
-  const login =
-    document.getElementById(
-      "login-screen"
-    );
-
-
-  if (site) {
-    site.style.display =
-      "none";
-  }
-
-
-  if (login) {
-    login.style.display =
-      "flex";
-  }
-}
-
-
-// =====================================================
-// MOSTRAR SITE
-// =====================================================
-
-async function mostrarSite() {
-
-  await atualizarUsuario();
-
-
-  const login =
-    document.getElementById(
-      "login-screen"
-    );
-
-  const site =
-    document.getElementById(
-      "site"
-    );
-
-
-  if (login) {
-
-    login.style.display =
-      "none";
-  }
-
-
-  if (site) {
-
-    site.style.display =
-      "block";
-  }
-
-
-  atualizarInterfaceUsuario();
-
-  carregarPosts();
-}
-
-
-// =====================================================
-// INTERFACE DA CONTA
-// =====================================================
-
-function atualizarInterfaceUsuario() {
-
-  const aviso =
-    document.querySelector(
-      ".aviso-visitante"
-    );
-
-
-  if (!aviso) {
-    return;
-  }
-
-
-  if (usuarioAtual) {
-
-    aviso.innerHTML =
-      `Você está conectado como <strong>${escaparHTML(
-        usuarioAtual.email || "usuário"
-      )}</strong>.`;
-
-  } else {
-
-    aviso.innerHTML =
-      "Você está navegando como visitante. " +
-      "Crie uma conta para comentar.";
-  }
-}
-
-
-// =====================================================
-// JANELA DE LOGIN/CADASTRO
-// =====================================================
-
-function criarJanelaConta() {
-
-  if (
-    document.getElementById(
-      "janela-conta"
-    )
-  ) {
-    return;
-  }
-
-
-  const janela =
-    document.createElement(
-      "div"
-    );
-
-
-  janela.id =
-    "janela-conta";
-
-
-  janela.innerHTML = `
-
-    <div class="caixa-conta">
-
-      <button
-        class="fechar-conta"
-        onclick="fecharJanelaConta()"
-      >
-        ×
-      </button>
-
-
-      <div class="abas-conta">
-
-        <button
-          id="aba-login"
-          class="aba-conta ativa"
-          onclick="mostrarLogin()"
-        >
-          Entrar
-        </button>
-
-        <button
-          id="aba-cadastro"
-          class="aba-conta"
-          onclick="mostrarCadastro()"
-        >
-          Criar conta
-        </button>
-
-      </div>
-
-
-      <div
-        id="form-login"
-        class="form-conta"
-      >
-
-        <h2>
-          Entrar
-        </h2>
-
-        <p>
-          Entre na sua conta do Ipiranga 24h.
-        </p>
-
-
-        <input
-          id="login-email"
-          type="email"
-          placeholder="Seu e-mail"
-          autocomplete="email"
-        >
-
-
-        <input
-          id="login-senha"
-          type="password"
-          placeholder="Sua senha"
-          autocomplete="current-password"
-        >
-
-
-        <button
-          id="botao-entrar-conta"
-          class="botao-conta-principal"
-          onclick="entrarComConta()"
-        >
-          Entrar
-        </button>
-
-
-        <button
-          class="botao-conta-secundario"
-          onclick="mostrarCadastro()"
-        >
-          Ainda não tenho conta
-        </button>
-
-      </div>
-
-
-      <div
-        id="form-cadastro"
-        class="form-conta"
-        style="display:none;"
-      >
-
-        <h2>
-          Criar conta
-        </h2>
-
-        <p>
-          Crie sua conta para poder comentar.
-        </p>
-
-
-        <input
-          id="cadastro-username"
-          type="text"
-          placeholder="Nome de usuário"
-          maxlength="30"
-          autocomplete="username"
-        >
-
-
-        <input
-          id="cadastro-email"
-          type="email"
-          placeholder="Seu e-mail"
-          autocomplete="email"
-        >
-
-
-        <input
-          id="cadastro-senha"
-          type="password"
-          placeholder="Crie uma senha"
-          minlength="6"
-          autocomplete="new-password"
-        >
-
-
-        <button
-          id="botao-cadastrar"
-          class="botao-conta-principal"
-          onclick="criarConta()"
-        >
-          Criar conta
-        </button>
-
-
-        <button
-          class="botao-conta-secundario"
-          onclick="mostrarLogin()"
-        >
-          Já tenho uma conta
-        </button>
-
-      </div>
-
-    </div>
-
-  `;
-
-
-  document.body.appendChild(
-    janela
-  );
-}
-
-
-function abrirJanelaConta() {
-
-  criarJanelaConta();
-
-
-  const janela =
-    document.getElementById(
-      "janela-conta"
-    );
-
-
-  janela.style.display =
-    "flex";
-
-
-  mostrarLogin();
-}
-
-
-function fecharJanelaConta() {
-
-  const janela =
-    document.getElementById(
-      "janela-conta"
-    );
-
-
-  if (janela) {
-
-    janela.style.display =
-      "none";
-  }
-}
-
-
-function mostrarLogin() {
-
-  criarJanelaConta();
-
-
-  document
-    .getElementById(
-      "form-login"
-    )
-    .style.display =
-    "block";
-
-
-  document
-    .getElementById(
-      "form-cadastro"
-    )
-    .style.display =
-    "none";
-
-
-  document
-    .getElementById(
-      "aba-login"
-    )
-    .classList.add(
-      "ativa"
-    );
-
-
-  document
-    .getElementById(
-      "aba-cadastro"
-    )
-    .classList.remove(
-      "ativa"
-    );
-}
-
-
-function mostrarCadastro() {
-
-  criarJanelaConta();
-
-
-  document
-    .getElementById(
-      "form-login"
-    )
-    .style.display =
-    "none";
-
-
-  document
-    .getElementById(
-      "form-cadastro"
-    )
-    .style.display =
-    "block";
-
-
-  document
-    .getElementById(
-      "aba-login"
-    )
-    .classList.remove(
-      "ativa"
-    );
-
-
-  document
-    .getElementById(
-      "aba-cadastro"
-    )
-    .classList.add(
-      "ativa"
-    );
-}
-
-
-// =====================================================
-// COMENTÁRIOS
-// =====================================================
-
-async function abrirComentarios(
-  id
-) {
-
-  const area =
-    document.getElementById(
-      `comentarios-${id}`
-    );
-
-
-  if (!area) {
-    return;
-  }
-
-
-  const aberto =
-    area.style.display ===
-    "block";
-
-
-  if (aberto) {
-
-    area.style.display =
-      "none";
-
-    return;
-  }
-
-
-  await atualizarUsuario();
-
-
-  area.style.display =
-    "block";
-
-
-  const campo =
-    document.getElementById(
-      `comentario-texto-${id}`
-    );
-
-
-  const aviso =
-    area.querySelector(
-      ".aviso-login-comentario"
-    );
-
-
-  if (
-    !usuarioAtual
-  ) {
-
-    if (!aviso) {
-
-      const mensagem =
-        document.createElement(
-          "p"
-        );
-
-      mensagem.className =
-        "aviso-login-comentario";
-
-
-      mensagem.innerHTML =
-        `💬 Para comentar, você precisa <button onclick="abrirJanelaConta()">entrar ou criar uma conta</button>.`;
-
-
-      area.prepend(
-        mensagem
-      );
-    }
-
-
-    if (campo) {
-      campo.disabled =
-        true;
-    }
-
-
-    const botao =
-      area.querySelector(
-        ".botao-publicar-comentario"
-      );
-
-
-    if (botao) {
-      botao.disabled =
-        true;
-    }
-
-
-    return;
-  }
-
-
-  if (campo) {
-
-    campo.disabled =
-      false;
-
-    setTimeout(
-      () =>
-        campo.focus(),
-      100
-    );
-  }
-
-
-  const botao =
-    area.querySelector(
-      ".botao-publicar-comentario"
-    );
-
-
-  if (botao) {
-    botao.disabled =
-      false;
-  }
-
-
-  carregarComentarios(
-    id
-  );
-}
-
-
-async function adicionarComentario(
-  id
-) {
-
-  await atualizarUsuario();
-
-
-  if (!usuarioAtual) {
-
-    alert(
-      "Você precisa criar uma conta ou entrar para comentar."
-    );
-
-    abrirJanelaConta();
-
-    return;
-  }
-
-
-  const campo =
-    document.getElementById(
-      `comentario-texto-${id}`
-    );
-
-
-  if (!campo) {
-    return;
-  }
-
-
-  const texto =
-    campo.value.trim();
-
-
-  if (!texto) {
-
-    alert(
-      "Digite um comentário antes de publicar."
-    );
-
-    return;
-  }
-
-
-  if (
-    texto.length > 500
-  ) {
-
-    alert(
-      "O comentário pode ter no máximo 500 caracteres."
-    );
-
-    return;
-  }
-
-
-  const {
-    data: perfil,
-    error: erroPerfil
-  } =
-    await supabaseClient
-      .from("profiles")
-      .select("username")
-      .eq(
-        "id",
-        usuarioAtual.id
-      )
-      .maybeSingle();
-
-
-  if (erroPerfil) {
-
-    console.error(
-      erroPerfil
-    );
-
-    alert(
-      "Não foi possível encontrar seu perfil."
-    );
-
-    return;
-  }
-
-
-  const username =
-    perfil?.username ||
-    usuarioAtual.email ||
-    "Usuário";
-
-
-  const {
-    error
-  } =
-    await supabaseClient
-      .from("comments")
-      .insert({
-
-        post_id: String(id),
-
-        user_id:
-          usuarioAtual.id,
-
-        username:
-          username,
-
-        content:
-          texto
-
-      });
-
-
-  if (error) {
-
-    console.error(
-      "Erro ao publicar comentário:",
-      error
-    );
-
-    alert(
-      "Não foi possível publicar o comentário."
-    );
-
-    return;
-  }
-
-
-  campo.value =
-    "";
-
-
-  await carregarComentarios(
-    id
-  );
-}
-
-
-// =====================================================
-// CARREGAR COMENTÁRIOS
-// =====================================================
-
-async function carregarComentarios(
-  id
-) {
-
-  const lista =
-    document.getElementById(
-      `lista-comentarios-${id}`
-    );
-
-
-  if (!lista) {
-    return;
-  }
-
-
-  const {
-    data,
-    error
-  } =
-    await supabaseClient
-      .from("comments")
-      .select(
-        "id, username, content, created_at"
-      )
-      .eq(
-        "post_id",
-        String(id)
-      )
-      .order(
-        "created_at",
-        {
-          ascending: true
-        }
-      );
-
-
-  if (error) {
-
-    console.error(
-      "Erro ao carregar comentários:",
-      error
-    );
-
-
-    lista.innerHTML =
-      `<p class="sem-comentarios">
-        Não foi possível carregar os comentários.
-      </p>`;
-
-    return;
-  }
-
-
-  if (
-    !data ||
-    data.length === 0
-  ) {
-
-    lista.innerHTML =
-      `<p class="sem-comentarios">
-        Nenhum comentário ainda.
-      </p>`;
-
-    return;
-  }
-
-
-  lista.innerHTML =
-    data
-      .map(
-        comentario => `
-
-          <div class="comentario">
-
-            <strong>
-              ${escaparHTML(
-                comentario.username
-              )}
-            </strong>
-
-            <small>
-              ${escaparHTML(
-                formatarData(
-                  comentario.created_at
-                )
-              )}
-            </small>
-
-            <p>
-              
 // ======================================================
 // IPIRANGA 24H — SISTEMA DE CONTAS + COMENTÁRIOS
 // ======================================================
@@ -1660,3 +889,381 @@ function obterId(post, indice) {
 
 
   return String(
+    post.id ?? indice
+  );
+
+}
+
+
+// ======================================================
+// ESCAPAR HTML
+// ======================================================
+
+function escaparHTML(texto) {
+
+  if (texto === null || texto === undefined) {
+
+    return "";
+
+  }
+
+
+  return String(texto)
+
+    .replace(/&/g, "&amp;")
+
+    .replace(/</g, "&lt;")
+
+    .replace(/>/g, "&gt;")
+
+    .replace(/"/g, "&quot;")
+
+    .replace(/'/g, "&#039;");
+
+}
+
+
+// ======================================================
+// CRIAR POST
+// ======================================================
+
+function criarPost(post, indice) {
+
+  const id =
+    obterId(post, indice);
+
+
+  const titulo =
+    escaparHTML(post.titulo || "Sem título");
+
+
+  const descricao =
+    escaparHTML(
+      post.descricao ||
+      "Confira esta informação."
+    );
+
+
+  const data =
+    escaparHTML(
+      post.data || ""
+    );
+
+
+  const fonte =
+    escaparHTML(
+      post.fonte || "Ipiranga"
+    );
+
+
+  const imagem =
+    post.imagem ||
+    post.image ||
+    "";
+
+
+  const link =
+    post.link ||
+    post.url ||
+    "#";
+
+
+  const postElement =
+    document.createElement("article");
+
+
+  postElement.className =
+    "post";
+
+
+  postElement.dataset.postId =
+    id;
+
+
+  postElement.innerHTML = `
+
+    <div class="post-topo">
+
+      <span class="post-fonte">
+        ${fonte}
+      </span>
+
+      <span class="post-data">
+        ${data}
+      </span>
+
+    </div>
+
+
+    <div class="post-status">
+      Atualizado
+    </div>
+
+
+    <h2>
+      ${titulo}
+    </h2>
+
+
+    ${
+      imagem
+        ? `
+          <img
+            src="${escaparHTML(imagem)}"
+            alt="${titulo}"
+            loading="lazy"
+            onerror="this.style.display='none'"
+          >
+        `
+        : ""
+    }
+
+
+    <p class="post-descricao">
+      ${descricao}
+    </p>
+
+
+    <div class="post-acoes">
+
+      <button
+        class="acao-btn"
+        data-acao="curtir"
+        data-id="${escaparHTML(id)}">
+
+        ❤️ <span class="contador-curtidas">0</span>
+
+      </button>
+
+
+      <button
+        class="acao-btn"
+        data-acao="comentarios"
+        data-id="${escaparHTML(id)}">
+
+        💬 Comentários
+
+      </button>
+
+
+      <button
+        class="acao-btn"
+        data-acao="compartilhar"
+        data-id="${escaparHTML(id)}">
+
+        🔗 Compartilhar
+
+      </button>
+
+
+      <span class="visualizacoes">
+
+        👁️ <span class="contador-visualizacoes">0</span>
+
+      </span>
+
+    </div>
+
+
+    <div
+      class="comentarios"
+      id="comentarios-${indice}"
+      style="display:none;">
+
+    </div>
+
+
+    <div class="post-rodape">
+
+      <a
+        href="${escaparHTML(link)}"
+        target="_blank"
+        rel="noopener noreferrer">
+
+        Ver matéria original
+
+      </a>
+
+    </div>
+
+  `;
+
+
+  postsContainer.appendChild(
+    postElement
+  );
+
+
+  // Botões
+
+  const botoes =
+    postElement.querySelectorAll(
+      ".acao-btn"
+    );
+
+
+  botoes.forEach(botao => {
+
+    botao.addEventListener(
+      "click",
+      function () {
+
+        const acao =
+          this.dataset.acao;
+
+        const postId =
+          this.dataset.id;
+
+
+        if (acao === "curtir") {
+
+          curtirPost(
+            postId,
+            this
+          );
+
+        }
+
+
+        if (acao === "comentarios") {
+
+          abrirComentarios(
+            postId,
+            postElement
+          );
+
+        }
+
+
+        if (acao === "compartilhar") {
+
+          compartilharPost(
+            postId,
+            link
+          );
+
+        }
+
+      }
+    );
+
+  });
+
+
+  registrarVisualizacao(
+    id,
+    postElement
+  );
+
+}
+
+
+// ======================================================
+// CURTIDA
+// ======================================================
+
+function curtirPost(id, botao) {
+
+  const chave =
+    "curtida_" + id;
+
+
+  const curtido =
+    localStorage.getItem(chave);
+
+
+  if (curtido) {
+
+    localStorage.removeItem(chave);
+
+    botao.classList.remove(
+      "curtido"
+    );
+
+  } else {
+
+    localStorage.setItem(
+      chave,
+      "1"
+    );
+
+    botao.classList.add(
+      "curtido"
+    );
+
+  }
+
+}
+
+
+// ======================================================
+// ABRIR COMENTÁRIOS
+// ======================================================
+
+window.abrirComentarios = async function (
+  id,
+  postElement
+) {
+
+  if (!postElement) {
+
+    postElement =
+      document.querySelector(
+        `[data-post-id="${CSS.escape(id)}"]`
+      );
+
+  }
+
+
+  if (!postElement) return;
+
+
+  const area =
+    postElement.querySelector(
+      ".comentarios"
+    );
+
+
+  if (!area) return;
+
+
+  if (
+    area.style.display === "block"
+  ) {
+
+    area.style.display = "none";
+
+    return;
+
+  }
+
+
+  area.style.display = "block";
+
+
+  // Verifica usuário
+
+  const {
+    data: {
+      session
+    }
+  } =
+    await supabaseClient.auth.getSession();
+
+
+  usuarioAtual =
+    session?.user || null;
+
+
+  // Visitante
+
+  if (!usuarioAtual) {
+
+    area.innerHTML = `
+
+      <div class="aviso-login-comentario">
+
+        🔒 Para comentar, você precisa
+        entrar ou criar uma conta.
+
+ 
