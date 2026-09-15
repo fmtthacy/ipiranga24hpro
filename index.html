@@ -2,6 +2,7 @@
 <html lang="pt-BR">
 
 <head>
+
   <meta charset="UTF-8">
 
   <meta
@@ -11,17 +12,167 @@
 
   <title>Ipiranga 24h</title>
 
+
+  <!-- CSS PRINCIPAL -->
+
   <link
     rel="stylesheet"
-    href="style.css?v=5"
+    href="style.css?v=6"
   >
+
+
+  <!-- ESTILO BÁSICO DA PÁGINA -->
+
+  <style>
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+    }
+
+    /* Tela inicial */
+
+    .login-screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 580px;
+      text-align: center;
+    }
+
+    .logo-area {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 25px;
+    }
+
+    .logo-ipiranga {
+      width: 100%;
+      max-width: 460px;
+      height: auto;
+      border-radius: 20px;
+      object-fit: contain;
+    }
+
+    .login-card h1 {
+      margin-bottom: 8px;
+    }
+
+    .login-subtitulo {
+      margin-bottom: 25px;
+    }
+
+    .botao-login,
+    .botao-visitante {
+      display: block;
+      width: 100%;
+      max-width: 400px;
+      margin: 10px auto;
+      padding: 14px 18px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .botao-login {
+      background: #0057b8;
+      color: white;
+      border: none;
+    }
+
+    .botao-login:active,
+    .botao-visitante:active {
+      transform: scale(0.98);
+    }
+
+    .botao-visitante {
+      background: transparent;
+      color: #0057b8;
+      border: 2px solid #0057b8;
+    }
+
+    .texto-visitante {
+      font-size: 14px;
+      margin-top: 18px;
+    }
+
+    /* Site */
+
+    #site {
+      width: 100%;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand img {
+      width: 70px;
+      height: 55px;
+      object-fit: contain;
+      border-radius: 10px;
+    }
+
+    .brand h1 {
+      margin: 0;
+    }
+
+    .brand span {
+      font-size: 13px;
+    }
+
+    .btn-sair {
+      cursor: pointer;
+    }
+
+    .linha-amarela {
+      width: 100%;
+      height: 6px;
+      background: #ffd400;
+    }
+
+    .conteudo {
+      width: 100%;
+    }
+
+    .cabecalho-conteudo h2 {
+      margin-bottom: 5px;
+    }
+
+    .cabecalho-conteudo p {
+      margin-top: 0;
+    }
+
+  </style>
+
 </head>
 
 
 <body>
 
+
   <!-- ==================================================
-       TELA INICIAL
+       TELA DE LOGIN
        ================================================== -->
 
   <section
@@ -31,25 +182,36 @@
 
     <div class="login-card">
 
+
+      <!-- LOGO -->
+
       <div class="logo-area">
 
         <img
           class="logo-ipiranga"
           src="Screenshot_2026-09-14-13-41-10-437_com.openai.chatgpt-edit.jpg"
-          alt="Ipiranga"
+          alt="Logo Ipiranga"
         >
 
       </div>
 
 
-      <h1>Ipiranga 24h</h1>
+      <!-- TÍTULO -->
+
+      <h1>
+        Ipiranga 24h
+      </h1>
+
 
       <p class="login-subtitulo">
         Informações e novidades da Ipiranga
       </p>
 
 
+      <!-- ENTRAR -->
+
       <button
+        type="button"
         class="botao-login"
         onclick="entrar()"
       >
@@ -57,7 +219,10 @@
       </button>
 
 
+      <!-- VISITANTE -->
+
       <button
+        type="button"
         class="botao-visitante"
         onclick="entrarComoVisitante()"
       >
@@ -68,6 +233,7 @@
       <p class="texto-visitante">
         Você poderá acessar como visitante sem informar CPF.
       </p>
+
 
     </div>
 
@@ -85,20 +251,27 @@
   >
 
 
-    <!-- CABEÇALHO -->
+    <!-- ==================================================
+         CABEÇALHO
+         ================================================== -->
 
     <header class="topbar">
 
+
       <div class="brand">
+
 
         <img
           src="Screenshot_2026-09-14-13-41-10-437_com.openai.chatgpt-edit.jpg"
           alt="Ipiranga"
         >
 
+
         <div>
 
-          <h1>Ipiranga 24h</h1>
+          <h1>
+            Ipiranga 24h
+          </h1>
 
           <span>
             Informações e novidades
@@ -106,15 +279,18 @@
 
         </div>
 
+
       </div>
 
 
       <button
+        type="button"
         class="btn-sair"
         onclick="sair()"
       >
         Sair
       </button>
+
 
     </header>
 
@@ -126,12 +302,14 @@
 
 
 
-    <!-- CONTEÚDO -->
+    <!-- ==================================================
+         CONTEÚDO
+         ================================================== -->
 
     <main class="conteudo">
 
 
-      <!-- AVISO DO USUÁRIO -->
+      <!-- AVISO -->
 
       <div class="aviso-visitante">
 
@@ -157,7 +335,9 @@
 
 
 
-      <!-- POSTS -->
+      <!-- ==================================================
+           NOTÍCIAS
+           ================================================== -->
 
       <section
         id="posts"
@@ -175,7 +355,128 @@
 
     </main>
 
+
   </div>
+
+
+
+  <!-- ==================================================
+       FUNÇÕES DE SEGURANÇA DOS BOTÕES
+       ================================================== -->
+
+  <script>
+
+    /*
+      Essas funções são um "plano B".
+
+      Se o script principal ainda não tiver carregado,
+      os botões continuam respondendo.
+    */
+
+
+    window.entrar = function () {
+
+      if (
+        typeof abrirJanelaConta === "function"
+      ) {
+
+        abrirJanelaConta();
+
+      } else {
+
+        alert(
+          "O sistema de login ainda está carregando. Tente novamente."
+        );
+
+      }
+
+    };
+
+
+    window.entrarComoVisitante = function () {
+
+      localStorage.setItem(
+        "modoAcesso",
+        "visitante"
+      );
+
+
+      const telaLogin =
+        document.querySelector(
+          ".login-screen"
+        );
+
+
+      const site =
+        document.getElementById(
+          "site"
+        );
+
+
+      if (telaLogin) {
+
+        telaLogin.style.display =
+          "none";
+
+      }
+
+
+      if (site) {
+
+        site.style.display =
+          "block";
+
+      }
+
+
+      if (
+        typeof carregarPosts === "function"
+      ) {
+
+        carregarPosts();
+
+      }
+
+    };
+
+
+    window.sair = function () {
+
+      localStorage.removeItem(
+        "modoAcesso"
+      );
+
+
+      const telaLogin =
+        document.querySelector(
+          ".login-screen"
+        );
+
+
+      const site =
+        document.getElementById(
+          "site"
+        );
+
+
+      if (site) {
+
+        site.style.display =
+          "none";
+
+      }
+
+
+      if (telaLogin) {
+
+        telaLogin.style.display =
+          "flex";
+
+      }
+
+    };
+
+  </script>
 
 
 
@@ -183,16 +484,18 @@
        SUPABASE
        ================================================== -->
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="script.js?v=6"></script>
+  <script
+    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+  ></script>
+
 
 
   <!-- ==================================================
-       JAVASCRIPT DO SITE
+       SCRIPT PRINCIPAL
        ================================================== -->
 
   <script
-    src="script.js?v=5"
+    src="script.js?v=6"
   ></script>
 
 
