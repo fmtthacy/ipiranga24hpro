@@ -29,12 +29,21 @@ HEADERS = {
     )
 }
 
-# Quantidade máxima de matérias diferentes que o robô pode guardar.
-MAX_MATERIAS = 100
 
-# Quantidade máxima de páginas que o robô pode visitar em uma execução.
-MAX_PAGINAS = 150
+# ============================================================
+# LIMITES
+# ============================================================
 
+# Quantidade máxima de matérias diferentes que serão salvas.
+MAX_MATERIAS = 130
+
+# Quantidade máxima de páginas que o robô poderá visitar.
+MAX_PAGINAS = 300
+
+
+# ============================================================
+# FUNÇÕES BÁSICAS
+# ============================================================
 
 def normalizar(texto):
     texto = texto or ""
@@ -73,26 +82,42 @@ def baixar_pagina(url):
     )
 
 
+# ============================================================
+# NORMALIZAÇÃO DAS URLs
+# ============================================================
+
 def normalizar_url(url):
     """
-    Remove partes desnecessárias da URL,
-    como !ut/p/z1/... e mantém somente o endereço
-    principal da matéria.
+    Remove partes desnecessárias das URLs do portal.
+
+    Exemplo:
+
+    URL cheia:
+    /materias/noticia/!ut/p/z1/...
+
+    vira:
+
+    /materias/noticia
     """
+
+    if not url:
+        return ""
 
     try:
 
         partes = urlparse(url)
 
+        if not partes.netloc:
+            return url
+
         caminho = partes.path
 
-        # Remove /!ut/p/... das URLs do portal.
+        # Remove parâmetros internos do portal.
         if "/!ut/" in caminho:
             caminho = caminho.split("/!ut/")[0]
 
         caminho = caminho.rstrip("/")
 
-        # Mantém somente o domínio oficial.
         return (
             partes.scheme
             + "://"
@@ -105,11 +130,44 @@ def normalizar_url(url):
         return url
 
 
+def obter_slug_materia(url):
+    """
+    Obtém o nome final da matéria na URL.
+
+    Isso ajuda a identificar versões diferentes
+    da mesma publicação.
+    """
+
+    url = normalizar_url(url)
+
+    if not url:
+        return ""
+
+    marcador = "/materias/"
+
+    if marcador not in url:
+        return ""
+
+    slug = url.split(
+        marcador,
+        1
+    )[1]
+
+    slug = slug.split(
+        "/",
+        1
+    )[0]
+
+    return normalizar(
+        slug
+    )
+
+
+# ============================================================
+# VERIFICAÇÃO DE MATÉRIAS
+# ============================================================
+
 def eh_materia_ipiranga(url):
-    """
-    Verifica se a URL pertence ao site oficial
-    da Ipiranga e aponta para uma matéria.
-    """
 
     if not url:
         return False
@@ -125,13 +183,14 @@ def eh_materia_ipiranga(url):
     )
 
 
+# ============================================================
+# LINKS
+# ============================================================
+
 def encontrar_links_na_pagina(
     soup,
     url_atual
 ):
-    """
-    Encontra links para outras matérias oficiais.
-    """
 
     encontrados = []
 
@@ -157,7 +216,9 @@ def encontrar_links_na_pagina(
             url
         )
 
-        if eh_materia_ipiranga(url):
+        if eh_materia_ipiranga(
+            url
+        ):
 
             encontrados.append(
                 url
@@ -166,10 +227,11 @@ def encontrar_links_na_pagina(
     return encontrados
 
 
+# ============================================================
+# EXTRAÇÃO DO TÍTULO
+# ============================================================
+
 def extrair_titulo(soup):
-    """
-    Extrai o título principal.
-    """
 
     h1 = soup.find("h1")
 
@@ -183,7 +245,6 @@ def extrair_titulo(soup):
         if len(titulo) >= 20:
             return titulo
 
-    # Segunda tentativa usando o <title>.
     if soup.title:
 
         titulo = soup.title.get_text(
@@ -204,12 +265,13 @@ def extrair_titulo(soup):
     return ""
 
 
-def extrair_data(texto):
-    """
-    Procura uma data no formato DD/MM/AAAA.
-    """
+# ============================================================
+# EXTRAÇÃO DA DATA
+# ============================================================
 
-    # Primeiro tenta encontrar "Atualizado em".
+def extrair_data(texto):
+
+    # Primeiro procura uma data próxima de "Atualizado em".
     encontrado = re.search(
         r"Atualizado\s+em\s+(\d{2}/\d{2}/\d{4})",
         texto,
@@ -231,27 +293,44 @@ def extrair_data(texto):
     return ""
 
 
+# ============================================================
+# EXTRAÇÃO DA DESCRIÇÃO
+# ============================================================
+
 def extrair_descricao(soup):
-    """
-    Procura o primeiro parágrafo útil da matéria.
-    """
 
     ignorar = [
+
         "fique por dentro de todas as novidades",
+
         "sobre a ipiranga",
+
         "informações para imprensa",
+
         "informacoes para imprensa",
+
         "compartilhe",
+
         "tópicos da matéria",
+
         "topicos da materia",
+
         "copiar",
+
         "baixar material",
+
         "leia também",
+
         "leia tambem",
+
         "veja também",
+
         "veja tambem",
+
         "acesse"
     ]
+
+    candidatos = []
 
     for p in soup.find_all("p"):
 
@@ -273,28 +352,37 @@ def extrair_descricao(soup):
         ):
             continue
 
-        if len(texto) > 400:
+        candidatos.append(
+            texto
+        )
 
-            texto = (
-                texto[:397]
-                .rsplit(" ", 1)[0]
-                + "..."
-            )
+    if not candidatos:
 
-        return texto
+        return (
+            "Confira a publicação oficial da Ipiranga."
+        )
 
-    return (
-        "Confira a publicação oficial da Ipiranga."
-    )
+    descricao = candidatos[0]
 
+    if len(descricao) > 400:
+
+        descricao = (
+            descricao[:397]
+            .rsplit(" ", 1)[0]
+            + "..."
+        )
+
+    return descricao
+
+
+# ============================================================
+# EXTRAÇÃO COMPLETA DA MATÉRIA
+# ============================================================
 
 def extrair_dados_da_soup(
     soup,
     url
 ):
-    """
-    Extrai todas as informações de uma matéria.
-    """
 
     titulo = extrair_titulo(
         soup
@@ -325,14 +413,58 @@ def extrair_dados_da_soup(
     }
 
 
-def encontrar_materias():
-    """
-    Começa pela sala de imprensa e percorre os links
-    para outras matérias oficiais.
+# ============================================================
+# IDENTIFICAÇÃO DA MATÉRIA
+# ============================================================
 
-    Existe um limite para evitar que o robô fique
-    navegando infinitamente pelo site.
+def chave_materia(item):
     """
+    Cria uma chave para evitar duplicações.
+
+    O título é usado como principal identificação.
+    O slug da URL também ajuda quando disponível.
+    """
+
+    titulo = normalizar(
+        item.get(
+            "titulo",
+            ""
+        )
+    )
+
+    titulo = re.sub(
+        r"[^a-z0-9\s]",
+        "",
+        titulo
+    )
+
+    titulo = re.sub(
+        r"\s+",
+        " ",
+        titulo
+    ).strip()
+
+    if titulo:
+        return "titulo:" + titulo
+
+    slug = obter_slug_materia(
+        item.get(
+            "link",
+            ""
+        )
+    )
+
+    if slug:
+        return "slug:" + slug
+
+    return ""
+
+
+# ============================================================
+# BUSCA AUTOMÁTICA
+# ============================================================
+
+def encontrar_materias():
 
     fila = deque()
 
@@ -340,7 +472,7 @@ def encontrar_materias():
 
     materias_encontradas = {}
 
-    # Pontos iniciais.
+    # Páginas iniciais.
     fila.append(
         normalizar_url(
             URL_MATERIAS
@@ -357,10 +489,11 @@ def encontrar_materias():
 
     while fila:
 
+        # Limite de páginas.
         if paginas_visitadas >= MAX_PAGINAS:
 
             print(
-                "Limite de páginas atingido."
+                "\nLimite de páginas atingido."
             )
 
             break
@@ -371,6 +504,7 @@ def encontrar_materias():
             url
         )
 
+        # Evita visitar a mesma URL duas vezes.
         if url in visitados:
             continue
 
@@ -401,8 +535,13 @@ def encontrar_materias():
 
             continue
 
-        # Se for uma matéria, salva.
-        if eh_materia_ipiranga(url):
+        # ====================================================
+        # SE FOR UMA MATÉRIA
+        # ====================================================
+
+        if eh_materia_ipiranga(
+            url
+        ):
 
             materia = extrair_dados_da_soup(
                 soup,
@@ -426,7 +565,10 @@ def encontrar_materias():
                         materia["titulo"]
                     )
 
-        # Procura outras matérias.
+        # ====================================================
+        # PROCURA OUTRAS MATÉRIAS
+        # ====================================================
+
         novos_links = encontrar_links_na_pagina(
             soup,
             url
@@ -438,17 +580,25 @@ def encontrar_materias():
                 novo_link
             )
 
+            if not novo_link:
+                continue
+
             if novo_link in visitados:
                 continue
 
             if len(
                 materias_encontradas
             ) >= MAX_MATERIAS:
+
                 break
 
             fila.append(
                 novo_link
             )
+
+        # ====================================================
+        # PARAR AO CHEGAR EM 130
+        # ====================================================
 
         if len(
             materias_encontradas
@@ -477,10 +627,11 @@ def encontrar_materias():
     )
 
 
+# ============================================================
+# CARREGAR DATA.JSON
+# ============================================================
+
 def carregar_antigos():
-    """
-    Carrega as matérias que já estavam no data.json.
-    """
 
     if not ARQUIVO.exists():
         return []
@@ -501,6 +652,7 @@ def carregar_antigos():
             dados,
             list
         ):
+
             return dados
 
     except Exception as erro:
@@ -513,16 +665,17 @@ def carregar_antigos():
     return []
 
 
+# ============================================================
+# LIMPEZA
+# ============================================================
+
 def limpar_materia(item):
-    """
-    Verifica se o item realmente parece ser
-    uma matéria válida da Ipiranga.
-    """
 
     if not isinstance(
         item,
         dict
     ):
+
         return False
 
     titulo = item.get(
@@ -544,49 +697,26 @@ def limpar_materia(item):
     if not eh_materia_ipiranga(
         link
     ):
+
         return False
 
     if len(titulo) < 20:
         return False
 
-    if normalizar(titulo) == normalizar(
+    if normalizar(
+        titulo
+    ) == normalizar(
         "Não encontramos resultados para sua pesquisa. 🙁"
     ):
+
         return False
 
     return True
 
 
-def chave_materia(item):
-    """
-    Cria uma identificação baseada no título da matéria.
-
-    Isso evita que a mesma publicação seja salva várias
-    vezes por causa de versões PT-BR, EN ou URLs diferentes.
-    """
-
-    titulo = normalizar(
-        item.get(
-            "titulo",
-            ""
-        )
-    )
-
-    # Remove caracteres especiais.
-    titulo = re.sub(
-        r"[^a-z0-9\s]",
-        "",
-        titulo
-    )
-
-    titulo = re.sub(
-        r"\s+",
-        " ",
-        titulo
-    ).strip()
-
-    return titulo
-
+# ============================================================
+# DATA PARA ORDENAÇÃO
+# ============================================================
 
 def data_para_numero(data):
 
@@ -611,18 +741,21 @@ def data_para_numero(data):
         )
 
 
+# ============================================================
+# JUNTAR E ELIMINAR DUPLICADAS
+# ============================================================
+
 def juntar_materias(
     antigas,
     novas
 ):
-    """
-    Junta histórico + novas matérias,
-    elimina duplicadas e ordena por data.
-    """
 
     materias = {}
 
-    # Primeiro processa o histórico.
+    # ========================================================
+    # MATÉRIAS ANTIGAS
+    # ========================================================
+
     for item in antigas:
 
         if not limpar_materia(
@@ -641,7 +774,10 @@ def juntar_materias(
 
             materias[chave] = item
 
-    # Depois processa as matérias encontradas.
+    # ========================================================
+    # MATÉRIAS NOVAS
+    # ========================================================
+
     for item in novas:
 
         if not limpar_materia(
@@ -656,14 +792,22 @@ def juntar_materias(
         if not chave:
             continue
 
-        # A versão encontrada agora substitui a antiga.
+        # A informação mais recente encontrada
+        # substitui a versão antiga.
         materias[chave] = item
+
+    # ========================================================
+    # CONVERTE PARA LISTA
+    # ========================================================
 
     resultado = list(
         materias.values()
     )
 
-    # Mais recente primeiro.
+    # ========================================================
+    # ORDENA DA MAIS NOVA PARA A MAIS ANTIGA
+    # ========================================================
+
     resultado.sort(
         key=lambda item:
             data_para_numero(
@@ -675,7 +819,18 @@ def juntar_materias(
         reverse=True
     )
 
-    # IDs.
+    # ========================================================
+    # LIMITA A 130
+    # ========================================================
+
+    resultado = resultado[
+        :MAX_MATERIAS
+    ]
+
+    # ========================================================
+    # IDs
+    # ========================================================
+
     for numero, item in enumerate(
         resultado,
         start=1
@@ -685,6 +840,10 @@ def juntar_materias(
 
     return resultado
 
+
+# ============================================================
+# SALVAR DATA.JSON
+# ============================================================
 
 def salvar(dados):
 
@@ -702,18 +861,25 @@ def salvar(dados):
         )
 
 
+# ============================================================
+# EXECUÇÃO PRINCIPAL
+# ============================================================
+
 def main():
 
     print("")
     print(
         "=========================================="
     )
+
     print(
         " BUSCA AUTOMÁTICA DE MATÉRIAS IPIRANGA"
     )
+
     print(
         "=========================================="
     )
+
     print("")
 
     antigas = carregar_antigos()
@@ -722,6 +888,8 @@ def main():
         "Matérias salvas anteriormente:",
         len(antigas)
     )
+
+    print("")
 
     novas = encontrar_materias()
 
@@ -735,23 +903,32 @@ def main():
     )
 
     print("")
+
     print(
         "=========================================="
     )
+
     print(
         f" TOTAL FINAL: {len(resultado)} MATÉRIAS"
     )
+
     print(
         "=========================================="
     )
+
     print("")
+
     print(
         "Duplicadas removidas automaticamente."
     )
+
     print(
         "data.json atualizado com sucesso!"
     )
 
+    print("")
+
 
 if __name__ == "__main__":
+
     main()
