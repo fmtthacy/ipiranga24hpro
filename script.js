@@ -1,718 +1,4 @@
-// =====================================================
-// IPIRANGA 24H
-// SUPABASE + MATÉRIAS + CONTAS + COMENTÁRIOS
-// =====================================================
-
-
-// =====================================================
-// SUPABASE
-// =====================================================
-
-const SUPABASE_URL =
-  "https://afbbgtijozwdnytjskka.supabase.co";
-
-const SUPABASE_KEY =
-  "COLE_AQUI_A_SUA_CHAVE_PUBLICA";
-
-
-const supabaseClient =
-  window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_KEY
-  );
-
-
-// =====================================================
-// CONFIGURAÇÕES
-// =====================================================
-
-const postsContainer =
-  document.getElementById("posts");
-
-const QUANTIDADE_DE_POSTS = 4;
-
-const CHAVE_ULTIMOS_POSTS =
-  "ipiranga24h_ultimos_posts";
-
-
-// =====================================================
-// UTILIDADES
-// =====================================================
-
-function escaparHTML(texto) {
-
-  if (
-    texto === undefined ||
-    texto === null
-  ) {
-    return "";
-  }
-
-  return String(texto)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-
-function escaparAtributo(texto) {
-  return escaparHTML(texto);
-}
-
-
-function formatarData(data) {
-
-  if (!data) {
-    return "";
-  }
-
-  if (
-    /^\d{2}\/\d{2}\/\d{4}$/.test(data)
-  ) {
-    return data;
-  }
-
-  const dataObj =
-    new Date(data);
-
-  if (
-    isNaN(
-      dataObj.getTime()
-    )
-  ) {
-    return data;
-  }
-
-  return dataObj.toLocaleDateString(
-    "pt-BR"
-  );
-}
-
-
-function embaralhar(array) {
-
-  const copia = [
-    ...array
-  ];
-
-  for (
-    let i = copia.length - 1;
-    i > 0;
-    i--
-  ) {
-
-    const j =
-      Math.floor(
-        Math.random() * (i + 1)
-      );
-
-    [
-      copia[i],
-      copia[j]
-    ] = [
-      copia[j],
-      copia[i]
-    ];
-  }
-
-  return copia;
-}
-
-
-// =====================================================
-// IDENTIFICAÇÃO DAS MATÉRIAS
-// =====================================================
-
-function obterId(
-  post,
-  indice
-) {
-
-  if (
-    post.id !== undefined &&
-    post.id !== null
-  ) {
-    return String(
-      post.id
-    );
-  }
-
-  if (post.link) {
-    return post.link;
-  }
-
-  return `post-${indice}`;
-}
-
-
-// =====================================================
-// ÚLTIMOS POSTS
-// =====================================================
-
-function obterUltimosPosts() {
-
-  try {
-
-    const dados =
-      JSON.parse(
-        sessionStorage.getItem(
-          CHAVE_ULTIMOS_POSTS
-        )
-      );
-
-    if (
-      Array.isArray(dados)
-    ) {
-      return dados;
-    }
-
-  } catch (erro) {
-
-    console.error(
-      "Erro ao ler últimos posts:",
-      erro
-    );
-  }
-
-  return [];
-}
-
-
-function salvarUltimosPosts(
-  posts
-) {
-
-  try {
-
-    const ids =
-      posts.map(
-        (
-          post,
-          indice
-        ) =>
-          obterId(
-            post,
-            indice
-          )
-      );
-
-    sessionStorage.setItem(
-      CHAVE_ULTIMOS_POSTS,
-      JSON.stringify(ids)
-    );
-
-  } catch (erro) {
-
-    console.error(
-      "Erro ao salvar últimos posts:",
-      erro
-    );
-  }
-}
-
-
-function escolherPosts(
-  posts
-) {
-
-  if (
-    !Array.isArray(posts)
-  ) {
-    return [];
-  }
-
-  if (
-    posts.length <=
-    QUANTIDADE_DE_POSTS
-  ) {
-
-    const escolhidos =
-      embaralhar(posts);
-
-    salvarUltimosPosts(
-      escolhidos
-    );
-
-    return escolhidos;
-  }
-
-
-  const ultimosIds =
-    obterUltimosPosts();
-
-
-  const novosPosts =
-    posts.filter(
-      (
-        post,
-        indice
-      ) =>
-        !ultimosIds.includes(
-          obterId(
-            post,
-            indice
-          )
-        )
-    );
-
-
-  let escolhidos;
-
-
-  if (
-    novosPosts.length >=
-    QUANTIDADE_DE_POSTS
-  ) {
-
-    escolhidos =
-      embaralhar(
-        novosPosts
-      ).slice(
-        0,
-        QUANTIDADE_DE_POSTS
-      );
-
-  } else {
-
-    const restantes =
-      posts.filter(
-        (
-          post
-        ) =>
-          !novosPosts.includes(
-            post
-          )
-      );
-
-    escolhidos = [
-      ...embaralhar(
-        novosPosts
-      ),
-      ...embaralhar(
-        restantes
-      )
-    ].slice(
-      0,
-      QUANTIDADE_DE_POSTS
-    );
-  }
-
-
-  salvarUltimosPosts(
-    escolhidos
-  );
-
-  return escolhidos;
-}
-
-
-// =====================================================
-// CONTA ATUAL
-// =====================================================
-
-let usuarioAtual = null;
-
-
-async function atualizarUsuario() {
-
-  const {
-    data,
-    error
-  } =
-    await supabaseClient.auth.getUser();
-
-
-  if (error) {
-
-    console.error(
-      "Erro ao verificar usuário:",
-      error
-    );
-
-    usuarioAtual = null;
-
-    return null;
-  }
-
-
-  usuarioAtual =
-    data?.user || null;
-
-  return usuarioAtual;
-}
-
-
-// =====================================================
-// CRIAR CONTA
-// =====================================================
-
-async function criarConta() {
-
-  const username =
-    document
-      .getElementById(
-        "cadastro-username"
-      )
-      ?.value
-      .trim();
-
-
-  const email =
-    document
-      .getElementById(
-        "cadastro-email"
-      )
-      ?.value
-      .trim();
-
-
-  const senha =
-    document
-      .getElementById(
-        "cadastro-senha"
-      )
-      ?.value;
-
-
-  if (
-    !username ||
-    !email ||
-    !senha
-  ) {
-
-    alert(
-      "Preencha nome de usuário, e-mail e senha."
-    );
-
-    return;
-  }
-
-
-  if (
-    username.length < 3
-  ) {
-
-    alert(
-      "O nome de usuário precisa ter pelo menos 3 caracteres."
-    );
-
-    return;
-  }
-
-
-  if (
-    senha.length < 6
-  ) {
-
-    alert(
-      "A senha precisa ter pelo menos 6 caracteres."
-    );
-
-    return;
-  }
-
-
-  const botao =
-    document.getElementById(
-      "botao-cadastrar"
-    );
-
-
-  if (botao) {
-    botao.disabled = true;
-    botao.textContent =
-      "Criando conta...";
-  }
-
-
-  try {
-
-    // Verifica se o nome já existe.
-    const {
-      data: nomeExistente,
-      error: erroNome
-    } =
-      await supabaseClient
-        .from("profiles")
-        .select("id")
-        .eq(
-          "username",
-          username
-        )
-        .maybeSingle();
-
-
-    if (erroNome) {
-      throw erroNome;
-    }
-
-
-    if (nomeExistente) {
-
-      alert(
-        "Esse nome de usuário já está sendo usado."
-      );
-
-      return;
-    }
-
-
-    // Cria a conta no sistema de autenticação.
-    const {
-      data,
-      error
-    } =
-      await supabaseClient.auth.signUp({
-
-        email: email,
-
-        password: senha
-
-      });
-
-
-    if (error) {
-      throw error;
-    }
-
-
-    if (!data.user) {
-
-      throw new Error(
-        "Não foi possível criar a conta."
-      );
-    }
-
-
-    // Cria o perfil do usuário.
-    const {
-      error: erroPerfil
-    } =
-      await supabaseClient
-        .from("profiles")
-        .insert({
-
-          id: data.user.id,
-
-          username: username
-
-        });
-
-
-    if (erroPerfil) {
-
-      console.error(
-        erroPerfil
-      );
-
-      alert(
-        "A conta foi criada, mas houve um problema ao salvar o nome de usuário."
-      );
-
-      return;
-    }
-
-
-    fecharJanelaConta();
-
-
-    alert(
-      "Conta criada com sucesso!"
-    );
-
-
-    // Se a confirmação por e-mail estiver
-    // ativada no Supabase.
-    if (
-      !data.session
-    ) {
-
-      alert(
-        "Verifique seu e-mail para confirmar a conta antes de entrar."
-      );
-    }
-
-
-    document
-      .getElementById(
-        "cadastro-username"
-      )
-      .value = "";
-
-
-    document
-      .getElementById(
-        "cadastro-email"
-      )
-      .value = "";
-
-
-    document
-      .getElementById(
-        "cadastro-senha"
-      )
-      .value = "";
-
-
-  } catch (erro) {
-
-    console.error(
-      "Erro ao criar conta:",
-      erro
-    );
-
-
-    alert(
-      "Não foi possível criar a conta.\n\n" +
-      (
-        erro.message ||
-        "Verifique os dados e tente novamente."
-      )
-    );
-
-
-  } finally {
-
-    if (botao) {
-
-      botao.disabled = false;
-
-      botao.textContent =
-        "Criar conta";
-    }
-  }
-}
-
-
-// =====================================================
-// ENTRAR
-// =====================================================
-
-async function entrarComConta() {
-
-  const email =
-    document
-      .getElementById(
-        "login-email"
-      )
-      ?.value
-      .trim();
-
-
-  const senha =
-    document
-      .getElementById(
-        "login-senha"
-      )
-      ?.value;
-
-
-  if (
-    !email ||
-    !senha
-  ) {
-
-    alert(
-      "Digite seu e-mail e sua senha."
-    );
-
-    return;
-  }
-
-
-  const botao =
-    document.getElementById(
-      "botao-entrar-conta"
-    );
-
-
-  if (botao) {
-
-    botao.disabled = true;
-
-    botao.textContent =
-      "Entrando...";
-  }
-
-
-  try {
-
-    const {
-      data,
-      error
-    } =
-      await supabaseClient.auth.signInWithPassword({
-
-        email: email,
-
-        password: senha
-
-      });
-
-
-    if (error) {
-      throw error;
-    }
-
-
-    usuarioAtual =
-      data.user;
-
-
-    localStorage.setItem(
-      "modoAcesso",
-      "conta"
-    );
-
-
-    fecharJanelaConta();
-
-
-    await mostrarSite();
-
-
-  } catch (erro) {
-
-    console.error(
-      "Erro ao entrar:",
-      erro
-    );
-
-
-    alert(
-      "Não foi possível entrar.\n\n" +
-      (
-        erro.message ||
-        "Verifique seu e-mail e senha."
-      )
-    );
-
-
-  } finally {
-
-    if (botao) {
-
-      botao.disabled = false;
-
-      botao.textContent =
-        "Entrar";
-    }
-  }
-}
-
-
-// =====================================================
-// VISITANTE
-// =====================================================
-
-function entrarComoVisitante() {
-
-  localStorage.setItem(
-    "modoAcesso",
-    "visitante"
-  );
+);
 
 
   mostrarSite();
@@ -1483,3 +769,894 @@ async function carregarComentarios(
 
             <p>
               
+// ======================================================
+// IPIRANGA 24H — SISTEMA DE CONTAS + COMENTÁRIOS
+// ======================================================
+
+// ---------- SUPABASE ----------
+const SUPABASE_URL = "https://afbbgtijozwdnytjskka.supabase.co";
+
+const SUPABASE_KEY =
+  "sb_publishable_l1xwkAczycJw-vaA9TXPNA_uGV7QS0n";
+
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
+
+
+// ======================================================
+// CONFIGURAÇÕES
+// ======================================================
+
+const postsContainer = document.getElementById("posts");
+const QUANTIDADE_DE_POSTS = 4;
+
+let usuarioAtual = null;
+
+
+// ======================================================
+// ESTILO DA JANELA DE LOGIN / CADASTRO
+// ======================================================
+
+const estiloConta = document.createElement("style");
+
+estiloConta.textContent = `
+#janela-conta {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.65);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+}
+
+.caixa-conta {
+  background: white;
+  width: 100%;
+  max-width: 420px;
+  border-radius: 18px;
+  padding: 25px;
+  box-sizing: border-box;
+  position: relative;
+  box-shadow: 0 15px 40px rgba(0,0,0,.3);
+}
+
+.caixa-conta h2 {
+  color: #003b7a;
+  margin-top: 0;
+  text-align: center;
+}
+
+.caixa-conta p {
+  text-align: center;
+  color: #666;
+}
+
+.fechar-conta {
+  position: absolute;
+  right: 15px;
+  top: 10px;
+  border: none;
+  background: none;
+  font-size: 25px;
+  cursor: pointer;
+}
+
+.abas-conta {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.aba-conta {
+  flex: 1;
+  padding: 11px;
+  border: none;
+  border-radius: 9px;
+  cursor: pointer;
+  background: #eee;
+  font-weight: bold;
+}
+
+.aba-conta.ativa {
+  background: #ffd600;
+  color: #003b7a;
+}
+
+.form-conta {
+  display: none;
+}
+
+.form-conta.ativo {
+  display: block;
+}
+
+.form-conta label {
+  display: block;
+  margin-top: 12px;
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #333;
+}
+
+.form-conta input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 9px;
+  font-size: 16px;
+}
+
+.botao-conta-principal {
+  width: 100%;
+  margin-top: 18px;
+  padding: 13px;
+  border: none;
+  border-radius: 9px;
+  background: #0055a5;
+  color: white;
+  font-weight: bold;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.botao-conta-secundario {
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid #0055a5;
+  border-radius: 9px;
+  background: white;
+  color: #0055a5;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.mensagem-conta {
+  margin-top: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  background: #f1f1f1;
+  text-align: center;
+  display: none;
+}
+
+.aviso-login-comentario {
+  padding: 12px;
+  background: #fff4bf;
+  border-radius: 9px;
+  color: #604f00;
+  margin-bottom: 10px;
+}
+`;
+
+document.head.appendChild(estiloConta);
+
+
+// ======================================================
+// CRIA JANELA DE LOGIN / CADASTRO
+// ======================================================
+
+function criarJanelaConta() {
+
+  if (document.getElementById("janela-conta")) {
+    return;
+  }
+
+  const janela = document.createElement("div");
+
+  janela.id = "janela-conta";
+
+  janela.innerHTML = `
+    <div class="caixa-conta">
+
+      <button class="fechar-conta" onclick="fecharJanelaConta()">
+        ×
+      </button>
+
+      <h2>Ipiranga 24h</h2>
+
+      <p>Acesse sua conta</p>
+
+      <div class="abas-conta">
+
+        <button
+          id="aba-login"
+          class="aba-conta ativa"
+          onclick="mostrarLogin()">
+          Entrar
+        </button>
+
+        <button
+          id="aba-cadastro"
+          class="aba-conta"
+          onclick="mostrarCadastro()">
+          Criar conta
+        </button>
+
+      </div>
+
+
+      <!-- LOGIN -->
+
+      <div id="form-login" class="form-conta ativo">
+
+        <label>E-mail</label>
+
+        <input
+          id="login-email"
+          type="email"
+          placeholder="seu@email.com"
+        >
+
+        <label>Senha</label>
+
+        <input
+          id="login-senha"
+          type="password"
+          placeholder="Sua senha"
+        >
+
+        <button
+          class="botao-conta-principal"
+          onclick="entrarComConta()">
+          Entrar
+        </button>
+
+      </div>
+
+
+      <!-- CADASTRO -->
+
+      <div id="form-cadastro" class="form-conta">
+
+        <label>Nome de usuário</label>
+
+        <input
+          id="cadastro-usuario"
+          type="text"
+          placeholder="Como você quer aparecer"
+        >
+
+        <label>E-mail</label>
+
+        <input
+          id="cadastro-email"
+          type="email"
+          placeholder="seu@email.com"
+        >
+
+        <label>Senha</label>
+
+        <input
+          id="cadastro-senha"
+          type="password"
+          placeholder="Mínimo de 6 caracteres"
+        >
+
+        <button
+          class="botao-conta-principal"
+          onclick="criarConta()">
+          Criar conta
+        </button>
+
+      </div>
+
+
+      <div id="mensagem-conta" class="mensagem-conta"></div>
+
+    </div>
+  `;
+
+  document.body.appendChild(janela);
+}
+
+
+// ======================================================
+// MENSAGEM DA CONTA
+// ======================================================
+
+function mostrarMensagemConta(texto) {
+
+  const mensagem = document.getElementById("mensagem-conta");
+
+  if (!mensagem) return;
+
+  mensagem.textContent = texto;
+  mensagem.style.display = "block";
+}
+
+
+// ======================================================
+// ABRIR JANELA
+// ======================================================
+
+function abrirJanelaConta() {
+
+  criarJanelaConta();
+
+  const janela = document.getElementById("janela-conta");
+
+  janela.style.display = "flex";
+
+  mostrarLogin();
+}
+
+
+// ======================================================
+// FECHAR JANELA
+// ======================================================
+
+function fecharJanelaConta() {
+
+  const janela = document.getElementById("janela-conta");
+
+  if (janela) {
+    janela.style.display = "none";
+  }
+}
+
+
+// ======================================================
+// MOSTRAR LOGIN
+// ======================================================
+
+function mostrarLogin() {
+
+  criarJanelaConta();
+
+  document.getElementById("form-login").classList.add("ativo");
+  document.getElementById("form-cadastro").classList.remove("ativo");
+
+  document.getElementById("aba-login").classList.add("ativa");
+  document.getElementById("aba-cadastro").classList.remove("ativa");
+
+  const mensagem = document.getElementById("mensagem-conta");
+
+  if (mensagem) {
+    mensagem.style.display = "none";
+  }
+}
+
+
+// ======================================================
+// MOSTRAR CADASTRO
+// ======================================================
+
+function mostrarCadastro() {
+
+  criarJanelaConta();
+
+  document.getElementById("form-login").classList.remove("ativo");
+  document.getElementById("form-cadastro").classList.add("ativo");
+
+  document.getElementById("aba-login").classList.remove("ativa");
+  document.getElementById("aba-cadastro").classList.add("ativa");
+
+  const mensagem = document.getElementById("mensagem-conta");
+
+  if (mensagem) {
+    mensagem.style.display = "none";
+  }
+}
+
+
+// ======================================================
+// ENTRAR — BOTÃO DO INDEX
+// ======================================================
+
+window.entrar = function () {
+
+  localStorage.removeItem("modoAcesso");
+
+  abrirJanelaConta();
+};
+
+
+// ======================================================
+// CONTINUAR COMO VISITANTE
+// ======================================================
+
+window.entrarComoVisitante = function () {
+
+  localStorage.setItem("modoAcesso", "visitante");
+
+  fecharJanelaConta();
+
+  mostrarSite();
+
+};
+
+
+// ======================================================
+// CRIAR CONTA
+// ======================================================
+
+window.criarConta = async function () {
+
+  const username =
+    document.getElementById("cadastro-usuario").value.trim();
+
+  const email =
+    document.getElementById("cadastro-email").value.trim();
+
+  const senha =
+    document.getElementById("cadastro-senha").value;
+
+
+  if (!username || !email || !senha) {
+
+    mostrarMensagemConta(
+      "Preencha todos os campos."
+    );
+
+    return;
+  }
+
+
+  if (username.length < 3) {
+
+    mostrarMensagemConta(
+      "O nome de usuário precisa ter pelo menos 3 caracteres."
+    );
+
+    return;
+  }
+
+
+  if (senha.length < 6) {
+
+    mostrarMensagemConta(
+      "A senha precisa ter pelo menos 6 caracteres."
+    );
+
+    return;
+  }
+
+
+  mostrarMensagemConta(
+    "Criando sua conta..."
+  );
+
+
+  try {
+
+    // Verifica se o nome já existe
+
+    const { data: nomeExistente, error: erroNome } =
+      await supabaseClient
+        .from("profiles")
+        .select("id")
+        .eq("username", username)
+        .maybeSingle();
+
+
+    if (erroNome) {
+
+      console.error(erroNome);
+
+    }
+
+
+    if (nomeExistente) {
+
+      mostrarMensagemConta(
+        "Esse nome de usuário já está sendo usado."
+      );
+
+      return;
+    }
+
+
+    // Cria usuário no Supabase Auth
+
+    const { data, error } =
+      await supabaseClient.auth.signUp({
+
+        email: email,
+
+        password: senha,
+
+        options: {
+
+          data: {
+            username: username
+          }
+
+        }
+
+      });
+
+
+    if (error) {
+
+      mostrarMensagemConta(
+        error.message
+      );
+
+      return;
+    }
+
+
+    // Guarda temporariamente o nome
+
+    localStorage.setItem(
+      "ipiranga24h_username",
+      username
+    );
+
+
+    // Se o Supabase já criou uma sessão,
+    // cria o perfil imediatamente.
+
+    if (data.session && data.user) {
+
+      await garantirPerfil(data.user);
+
+      usuarioAtual = data.user;
+
+      localStorage.setItem(
+        "modoAcesso",
+        "conta"
+      );
+
+      fecharJanelaConta();
+
+      mostrarSite();
+
+      atualizarInterfaceUsuario();
+
+    } else {
+
+      mostrarMensagemConta(
+        "Conta criada! Verifique seu e-mail para confirmar a conta e depois entre."
+      );
+
+    }
+
+
+  } catch (erro) {
+
+    console.error(erro);
+
+    mostrarMensagemConta(
+      "Não foi possível criar a conta."
+    );
+
+  }
+
+};
+
+
+// ======================================================
+// ENTRAR COM CONTA
+// ======================================================
+
+window.entrarComConta = async function () {
+
+  const email =
+    document.getElementById("login-email").value.trim();
+
+  const senha =
+    document.getElementById("login-senha").value;
+
+
+  if (!email || !senha) {
+
+    mostrarMensagemConta(
+      "Digite seu e-mail e sua senha."
+    );
+
+    return;
+  }
+
+
+  mostrarMensagemConta(
+    "Entrando..."
+  );
+
+
+  try {
+
+    const { data, error } =
+      await supabaseClient.auth.signInWithPassword({
+
+        email: email,
+
+        password: senha
+
+      });
+
+
+    if (error) {
+
+      mostrarMensagemConta(
+        "E-mail ou senha incorretos."
+      );
+
+      return;
+    }
+
+
+    usuarioAtual = data.user;
+
+
+    await garantirPerfil(usuarioAtual);
+
+
+    localStorage.setItem(
+      "modoAcesso",
+      "conta"
+    );
+
+
+    fecharJanelaConta();
+
+    mostrarSite();
+
+    atualizarInterfaceUsuario();
+
+    carregarPosts();
+
+
+  } catch (erro) {
+
+    console.error(erro);
+
+    mostrarMensagemConta(
+      "Não foi possível entrar."
+    );
+
+  }
+
+};
+
+
+// ======================================================
+// GARANTIR PERFIL
+// ======================================================
+
+async function garantirPerfil(usuario) {
+
+  if (!usuario) return;
+
+
+  const { data: perfil } =
+    await supabaseClient
+      .from("profiles")
+      .select("*")
+      .eq("id", usuario.id)
+      .maybeSingle();
+
+
+  if (perfil) {
+    return perfil;
+  }
+
+
+  const usernameSalvo =
+    localStorage.getItem("ipiranga24h_username");
+
+
+  const username =
+    usuario.user_metadata?.username ||
+    usernameSalvo ||
+    usuario.email.split("@")[0];
+
+
+  const { data, error } =
+    await supabaseClient
+      .from("profiles")
+      .insert({
+
+        id: usuario.id,
+
+        username: username
+
+      })
+      .select()
+      .single();
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao criar perfil:",
+      error
+    );
+
+    return null;
+  }
+
+
+  return data;
+}
+
+
+// ======================================================
+// MOSTRAR SITE
+// ======================================================
+
+function mostrarSite() {
+
+  const loginScreen =
+    document.querySelector(".login-screen");
+
+  const conteudo =
+    document.querySelector(".conteudo");
+
+  const topbar =
+    document.querySelector(".topbar");
+
+
+  if (loginScreen) {
+
+    loginScreen.style.display = "none";
+
+  }
+
+
+  if (topbar) {
+
+    topbar.style.display = "flex";
+
+  }
+
+
+  if (conteudo) {
+
+    conteudo.style.display = "block";
+
+  }
+
+}
+
+
+// ======================================================
+// MOSTRAR LOGIN SCREEN
+// ======================================================
+
+function mostrarTelaLogin() {
+
+  const loginScreen =
+    document.querySelector(".login-screen");
+
+  const conteudo =
+    document.querySelector(".conteudo");
+
+  const topbar =
+    document.querySelector(".topbar");
+
+
+  if (loginScreen) {
+
+    loginScreen.style.display = "flex";
+
+  }
+
+
+  if (topbar) {
+
+    topbar.style.display = "none";
+
+  }
+
+
+  if (conteudo) {
+
+    conteudo.style.display = "none";
+
+  }
+
+}
+
+
+// ======================================================
+// SAIR
+// ======================================================
+
+window.sair = async function () {
+
+  await supabaseClient.auth.signOut();
+
+  usuarioAtual = null;
+
+  localStorage.removeItem("modoAcesso");
+
+  localStorage.removeItem(
+    "ipiranga24h_username"
+  );
+
+  mostrarTelaLogin();
+
+};
+
+
+// ======================================================
+// ATUALIZA INTERFACE
+// ======================================================
+
+async function atualizarInterfaceUsuario() {
+
+  const aviso =
+    document.querySelector(".aviso-visitante");
+
+
+  if (!aviso) return;
+
+
+  if (usuarioAtual) {
+
+    let username =
+      usuarioAtual.user_metadata?.username;
+
+
+    const { data: perfil } =
+      await supabaseClient
+        .from("profiles")
+        .select("username")
+        .eq("id", usuarioAtual.id)
+        .maybeSingle();
+
+
+    if (perfil) {
+
+      username = perfil.username;
+
+    }
+
+
+    aviso.textContent =
+      `Você está conectado como ${username || "usuário"}.`;
+
+    aviso.style.background =
+      "#e8f5e9";
+
+    aviso.style.color =
+      "#1b5e20";
+
+
+  } else {
+
+    aviso.textContent =
+      "Você está navegando como visitante. Entre ou crie uma conta para comentar.";
+
+    aviso.style.background =
+      "#fff4bf";
+
+    aviso.style.color =
+      "#604f00";
+
+  }
+
+}
+
+
+// ======================================================
+// ID ESTÁVEL DO POST
+// ======================================================
+
+function obterId(post, indice) {
+
+  // O link é melhor porque não muda
+  // quando o data.json é atualizado.
+
+  if (post.link) {
+
+    return post.link;
+
+  }
+
+
+  if (post.url) {
+
+    return post.url;
+
+  }
+
+
+  return String(
