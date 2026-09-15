@@ -1,934 +1,523 @@
 import json
 import re
-import unicodedata
-from pathlib import Path
-from collections import deque
+from datetime import datetime
 from urllib.parse import urljoin, urlparse
+from urllib.request import Request, urlopen
 
-import requests
 from bs4 import BeautifulSoup
 
 
-ARQUIVO = Path("data.json")
+BASE_URL = "https://www.ipiranga.com.br"
 
-URL_MATERIAS = (
-    "https://www.ipiranga.com.br/wps/portal/pt-br/ipiranga/"
-    "a-ipiranga/institucional/sala-de-imprensa/todas-as-materias"
+TODAS_AS_MATERIAS = (
+    "https://www.ipiranga.com.br/wps/portal/pt-br/"
+    "ipiranga/a-ipiranga/institucional/sala-de-imprensa/"
+    "todas-as-materias/"
 )
 
-URL_SALA_IMPRENSA = (
-    "https://www.ipiranga.com.br/wps/portal/pt-br/ipiranga/"
-    "a-ipiranga/institucional/sala-de-imprensa/"
-)
+ARQUIVO_SAIDA = "data.json"
 
 HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
         "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/131.0 Safari/537.36"
+        "Chrome/120.0 Safari/537.36"
     )
 }
 
 
-# ============================================================
-# LIMITES
-# ============================================================
+def baixar(url):
+    try:
+        req = Request(url, headers=HEADERS)
 
-# Quantidade máxima de matérias diferentes que serão salvas.
-MAX_MATERIAS = 130
+        with urlopen(req, timeout=30) as resposta:
+            return resposta.read().decode(
+                "utf-8",
+                errors="ignore"
+            )
 
-# Quantidade máxima de páginas que o robô poderá visitar.
-MAX_PAGINAS = 300
+    except Exception as erro:
+        print(f"ERRO ao acessar: {url}")
+        print(erro)
+        return ""
 
 
-# ============================================================
-# FUNÇÕES BÁSICAS
-# ============================================================
+def limpar(texto):
+    if not texto:
+        return ""
 
-def normalizar(texto):
-    texto = texto or ""
-
-    texto = unicodedata.normalize(
-        "NFKD",
-        texto
-    )
-
-    texto = "".join(
-        c for c in texto
-        if not unicodedata.combining(c)
-    )
-
-    texto = re.sub(
+    return re.sub(
         r"\s+",
         " ",
         texto
+    ).strip()
+
+
+def eh_materia(url):
+    caminho = urlparse(url).path.lower()
+
+    return (
+        "/sala-de-imprensa/materias/" in caminho
+        and urlparse(url).netloc.endswith(
+            "ipiranga.com.br"
+        )
     )
 
-    return texto.strip().lower()
 
-
-def baixar_pagina(url):
-    resposta = requests.get(
-        url,
-        headers=HEADERS,
-        timeout=30
-    )
-
-    resposta.raise_for_status()
-
-    return BeautifulSoup(
-        resposta.text,
+def encontrar_materias(html):
+    soup = BeautifulSoup(
+        html,
         "html.parser"
     )
 
-
-# ============================================================
-# NORMALIZAÇÃO DAS URLs
-# ============================================================
-
-def normalizar_url(url):
-    """
-    Remove partes desnecessárias das URLs do portal.
-
-    Exemplo:
-
-    URL cheia:
-    /materias/noticia/!ut/p/z1/...
-
-    vira:
-
-    /materias/noticia
-    """
-
-    if not url:
-        return ""
-
-    try:
-
-        partes = urlparse(url)
-
-        if not partes.netloc:
-            return url
-
-        caminho = partes.path
-
-        # Remove parâmetros internos do portal.
-        if "/!ut/" in caminho:
-            caminho = caminho.split("/!ut/")[0]
-
-        caminho = caminho.rstrip("/")
-
-        return (
-            partes.scheme
-            + "://"
-            + partes.netloc
-            + caminho
-        )
-
-    except Exception:
-
-        return url
-
-
-def obter_slug_materia(url):
-    """
-    Obtém o nome final da matéria na URL.
-
-    Isso ajuda a identificar versões diferentes
-    da mesma publicação.
-    """
-
-    url = normalizar_url(url)
-
-    if not url:
-        return ""
-
-    marcador = "/materias/"
-
-    if marcador not in url:
-        return ""
-
-    slug = url.split(
-        marcador,
-        1
-    )[1]
-
-    slug = slug.split(
-        "/",
-        1
-    )[0]
-
-    return normalizar(
-        slug
-    )
-
-
-# ============================================================
-# VERIFICAÇÃO DE MATÉRIAS
-# ============================================================
-
-def eh_materia_ipiranga(url):
-
-    if not url:
-        return False
-
-    url_normalizada = normalizar(
-        url
-    )
-
-    return (
-        "ipiranga.com.br" in url_normalizada
-        and "/sala-de-imprensa/" in url_normalizada
-        and "/materias/" in url_normalizada
-    )
-
-
-# ============================================================
-# LINKS
-# ============================================================
-
-def encontrar_links_na_pagina(
-    soup,
-    url_atual
-):
-
-    encontrados = []
+    urls = set()
 
     for a in soup.find_all(
         "a",
         href=True
     ):
-
-        href = a.get(
-            "href",
-            ""
-        ).strip()
+        href = a["href"].strip()
 
         if not href:
             continue
 
         url = urljoin(
-            url_atual,
+            BASE_URL,
             href
         )
 
-        url = normalizar_url(
-            url
-        )
+        if eh_materia(url):
+            urls.add(url)
 
-        if eh_materia_ipiranga(
-            url
-        ):
+    return urls
 
-            encontrados.append(
-                url
+
+def extrair_materia(url):
+    html = baixar(url)
+
+    if not html:
+        return None
+
+    soup = BeautifulSoup(
+        html,
+        "html.parser"
+    )
+
+    titulo = ""
+
+    meta_titulo = soup.find(
+        "meta",
+        attrs={
+            "property": "og:title"
+        }
+    )
+
+    if meta_titulo:
+        titulo = limpar(
+            meta_titulo.get(
+                "content",
+                ""
             )
-
-    return encontrados
-
-
-# ============================================================
-# EXTRAÇÃO DO TÍTULO
-# ============================================================
-
-def extrair_titulo(soup):
-
-    h1 = soup.find("h1")
-
-    if h1:
-
-        titulo = h1.get_text(
-            " ",
-            strip=True
         )
 
-        if len(titulo) >= 20:
-            return titulo
+    if not titulo:
+        h1 = soup.find("h1")
 
-    if soup.title:
-
-        titulo = soup.title.get_text(
-            " ",
-            strip=True
-        )
-
-        titulo = re.sub(
-            r"\s*\|\s*Ipiranga.*$",
-            "",
-            titulo,
-            flags=re.IGNORECASE
-        )
-
-        if len(titulo) >= 20:
-            return titulo.strip()
-
-    return ""
-
-
-# ============================================================
-# EXTRAÇÃO DA DATA
-# ============================================================
-
-def extrair_data(texto):
-
-    # Primeiro procura uma data próxima de "Atualizado em".
-    encontrado = re.search(
-        r"Atualizado\s+em\s+(\d{2}/\d{2}/\d{4})",
-        texto,
-        re.IGNORECASE
-    )
-
-    if encontrado:
-        return encontrado.group(1)
-
-    # Depois procura qualquer data.
-    encontrado = re.search(
-        r"\b(\d{2}/\d{2}/\d{4})\b",
-        texto
-    )
-
-    if encontrado:
-        return encontrado.group(1)
-
-    return ""
-
-
-# ============================================================
-# EXTRAÇÃO DA DESCRIÇÃO
-# ============================================================
-
-def extrair_descricao(soup):
-
-    ignorar = [
-
-        "fique por dentro de todas as novidades",
-
-        "sobre a ipiranga",
-
-        "informações para imprensa",
-
-        "informacoes para imprensa",
-
-        "compartilhe",
-
-        "tópicos da matéria",
-
-        "topicos da materia",
-
-        "copiar",
-
-        "baixar material",
-
-        "leia também",
-
-        "leia tambem",
-
-        "veja também",
-
-        "veja tambem",
-
-        "acesse"
-    ]
-
-    candidatos = []
-
-    for p in soup.find_all("p"):
-
-        texto = p.get_text(
-            " ",
-            strip=True
-        )
-
-        if len(texto) < 60:
-            continue
-
-        texto_normalizado = normalizar(
-            texto
-        )
-
-        if any(
-            palavra in texto_normalizado
-            for palavra in ignorar
-        ):
-            continue
-
-        candidatos.append(
-            texto
-        )
-
-    if not candidatos:
-
-        return (
-            "Confira a publicação oficial da Ipiranga."
-        )
-
-    descricao = candidatos[0]
-
-    if len(descricao) > 400:
-
-        descricao = (
-            descricao[:397]
-            .rsplit(" ", 1)[0]
-            + "..."
-        )
-
-    return descricao
-
-
-# ============================================================
-# EXTRAÇÃO COMPLETA DA MATÉRIA
-# ============================================================
-
-def extrair_dados_da_soup(
-    soup,
-    url
-):
-
-    titulo = extrair_titulo(
-        soup
-    )
+        if h1:
+            titulo = limpar(
+                h1.get_text(
+                    " ",
+                    strip=True
+                )
+            )
 
     if not titulo:
         return None
 
-    texto_pagina = soup.get_text(
-        " ",
-        strip=True
+    descricao = ""
+
+    meta_descricao = soup.find(
+        "meta",
+        attrs={
+            "property": "og:description"
+        }
     )
 
-    data = extrair_data(
-        texto_pagina
+    if meta_descricao:
+        descricao = limpar(
+            meta_descricao.get(
+                "content",
+                ""
+            )
+        )
+
+    if not descricao:
+        meta_descricao = soup.find(
+            "meta",
+            attrs={
+                "name": "description"
+            }
+        )
+
+        if meta_descricao:
+            descricao = limpar(
+                meta_descricao.get(
+                    "content",
+                    ""
+                )
+            )
+
+    if not descricao:
+        paragrafos = []
+
+        for p in soup.find_all("p"):
+            texto = limpar(
+                p.get_text(
+                    " ",
+                    strip=True
+                )
+            )
+
+            if len(texto) >= 50:
+                paragrafos.append(texto)
+
+        if paragrafos:
+            descricao = " ".join(
+                paragrafos[:2]
+            )
+
+    data = ""
+
+    # Procura a data nos metadados.
+    possiveis_datas = [
+        soup.find(
+            "meta",
+            attrs={
+                "property":
+                "article:published_time"
+            }
+        ),
+        soup.find(
+            "meta",
+            attrs={
+                "property":
+                "article:modified_time"
+            }
+        ),
+        soup.find(
+            "meta",
+            attrs={
+                "name": "date"
+            }
+        ),
+    ]
+
+    for elemento in possiveis_datas:
+        if elemento:
+            valor = elemento.get(
+                "content",
+                ""
+            ).strip()
+
+            if valor:
+                data = valor
+                break
+
+    # Procura elemento <time>.
+    if not data:
+        time = soup.find(
+            "time",
+            attrs={
+                "datetime": True
+            }
+        )
+
+        if time:
+            data = time.get(
+                "datetime",
+                ""
+            ).strip()
+
+    # Procura datas no texto da página.
+    if not data:
+        texto = soup.get_text(
+            " ",
+            strip=True
+        )
+
+        padrao = re.search(
+            r"\b\d{1,2}/\d{1,2}/\d{4}\b",
+            texto
+        )
+
+        if padrao:
+            data = padrao.group(0)
+
+    if not data:
+        data = datetime.now().strftime(
+            "%d/%m/%Y"
+        )
+
+    imagem = ""
+
+    meta_imagem = soup.find(
+        "meta",
+        attrs={
+            "property": "og:image"
+        }
     )
 
-    descricao = extrair_descricao(
-        soup
-    )
+    if meta_imagem:
+        imagem = urljoin(
+            url,
+            meta_imagem.get(
+                "content",
+                ""
+            )
+        )
 
     return {
         "titulo": titulo,
         "descricao": descricao,
         "data": data,
         "fonte": "Ipiranga",
-        "link": normalizar_url(url)
+        "link": url,
     }
 
 
-# ============================================================
-# IDENTIFICAÇÃO DA MATÉRIA
-# ============================================================
-
-def chave_materia(item):
-    """
-    Cria uma chave para evitar duplicações.
-
-    O título é usado como principal identificação.
-    O slug da URL também ajuda quando disponível.
-    """
-
-    titulo = normalizar(
-        item.get(
-            "titulo",
-            ""
-        )
-    )
-
-    titulo = re.sub(
-        r"[^a-z0-9\s]",
-        "",
-        titulo
-    )
-
-    titulo = re.sub(
-        r"\s+",
-        " ",
-        titulo
-    ).strip()
-
-    if titulo:
-        return "titulo:" + titulo
-
-    slug = obter_slug_materia(
-        item.get(
-            "link",
-            ""
-        )
-    )
-
-    if slug:
-        return "slug:" + slug
-
-    return ""
-
-
-# ============================================================
-# BUSCA AUTOMÁTICA
-# ============================================================
-
-def encontrar_materias():
-
-    fila = deque()
-
-    visitados = set()
-
-    materias_encontradas = {}
-
-    # Páginas iniciais.
-    fila.append(
-        normalizar_url(
-            URL_MATERIAS
-        )
-    )
-
-    fila.append(
-        normalizar_url(
-            URL_SALA_IMPRENSA
-        )
-    )
-
-    paginas_visitadas = 0
-
-    while fila:
-
-        # Limite de páginas.
-        if paginas_visitadas >= MAX_PAGINAS:
-
-            print(
-                "\nLimite de páginas atingido."
-            )
-
-            break
-
-        url = fila.popleft()
-
-        url = normalizar_url(
-            url
-        )
-
-        # Evita visitar a mesma URL duas vezes.
-        if url in visitados:
-            continue
-
-        visitados.add(
-            url
-        )
-
-        paginas_visitadas += 1
-
-        print(
-            f"\nPágina "
-            f"{paginas_visitadas}/"
-            f"{MAX_PAGINAS}"
-        )
-
-        try:
-
-            soup = baixar_pagina(
-                url
-            )
-
-        except Exception as erro:
-
-            print(
-                "Não foi possível acessar:",
-                erro
-            )
-
-            continue
-
-        # ====================================================
-        # SE FOR UMA MATÉRIA
-        # ====================================================
-
-        if eh_materia_ipiranga(
-            url
-        ):
-
-            materia = extrair_dados_da_soup(
-                soup,
-                url
-            )
-
-            if materia:
-
-                chave = chave_materia(
-                    materia
-                )
-
-                if chave:
-
-                    materias_encontradas[
-                        chave
-                    ] = materia
-
-                    print(
-                        "  ✓ Matéria encontrada:",
-                        materia["titulo"]
-                    )
-
-        # ====================================================
-        # PROCURA OUTRAS MATÉRIAS
-        # ====================================================
-
-        novos_links = encontrar_links_na_pagina(
-            soup,
-            url
-        )
-
-        for novo_link in novos_links:
-
-            novo_link = normalizar_url(
-                novo_link
-            )
-
-            if not novo_link:
-                continue
-
-            if novo_link in visitados:
-                continue
-
-            if len(
-                materias_encontradas
-            ) >= MAX_MATERIAS:
-
-                break
-
-            fila.append(
-                novo_link
-            )
-
-        # ====================================================
-        # PARAR AO CHEGAR EM 130
-        # ====================================================
-
-        if len(
-            materias_encontradas
-        ) >= MAX_MATERIAS:
-
-            print(
-                f"\nLimite de "
-                f"{MAX_MATERIAS} matérias atingido."
-            )
-
-            break
-
-    print("")
-    print(
-        "Páginas visitadas:",
-        paginas_visitadas
-    )
-
-    print(
-        "Matérias diferentes encontradas:",
-        len(materias_encontradas)
-    )
-
-    return list(
-        materias_encontradas.values()
-    )
-
-
-# ============================================================
-# CARREGAR DATA.JSON
-# ============================================================
-
-def carregar_antigos():
-
-    if not ARQUIVO.exists():
-        return []
-
+def carregar_existentes():
     try:
-
         with open(
-            ARQUIVO,
+            ARQUIVO_SAIDA,
             "r",
             encoding="utf-8"
         ) as arquivo:
 
-            dados = json.load(
-                arquivo
-            )
+            dados = json.load(arquivo)
 
-        if isinstance(
-            dados,
-            list
-        ):
-
-            return dados
+            if isinstance(dados, list):
+                return dados
 
     except Exception as erro:
-
         print(
-            "Erro ao ler data.json:",
+            "Não foi possível carregar "
+            "o data.json:",
             erro
         )
 
     return []
 
 
-# ============================================================
-# LIMPEZA
-# ============================================================
-
-def limpar_materia(item):
-
-    if not isinstance(
-        item,
-        dict
-    ):
-
-        return False
-
-    titulo = item.get(
-        "titulo",
-        ""
-    ).strip()
-
-    link = item.get(
-        "link",
-        ""
-    ).strip()
-
-    if not titulo:
-        return False
-
-    if not link:
-        return False
-
-    if not eh_materia_ipiranga(
-        link
-    ):
-
-        return False
-
-    if len(titulo) < 20:
-        return False
-
-    if normalizar(
-        titulo
-    ) == normalizar(
-        "Não encontramos resultados para sua pesquisa. 🙁"
-    ):
-
-        return False
-
-    return True
-
-
-# ============================================================
-# DATA PARA ORDENAÇÃO
-# ============================================================
-
-def data_para_numero(data):
-
-    try:
-
-        dia, mes, ano = data.split(
-            "/"
-        )
-
-        return (
-            int(ano),
-            int(mes),
-            int(dia)
-        )
-
-    except Exception:
-
-        return (
-            0,
-            0,
-            0
-        )
-
-
-# ============================================================
-# JUNTAR E ELIMINAR DUPLICADAS
-# ============================================================
-
-def juntar_materias(
-    antigas,
-    novas
-):
-
-    materias = {}
-
-    # ========================================================
-    # MATÉRIAS ANTIGAS
-    # ========================================================
-
-    for item in antigas:
-
-        if not limpar_materia(
-            item
-        ):
-            continue
-
-        chave = chave_materia(
-            item
-        )
-
-        if not chave:
-            continue
-
-        if chave not in materias:
-
-            materias[chave] = item
-
-    # ========================================================
-    # MATÉRIAS NOVAS
-    # ========================================================
-
-    for item in novas:
-
-        if not limpar_materia(
-            item
-        ):
-            continue
-
-        chave = chave_materia(
-            item
-        )
-
-        if not chave:
-            continue
-
-        # A informação mais recente encontrada
-        # substitui a versão antiga.
-        materias[chave] = item
-
-    # ========================================================
-    # CONVERTE PARA LISTA
-    # ========================================================
-
-    resultado = list(
-        materias.values()
-    )
-
-    # ========================================================
-    # ORDENA DA MAIS NOVA PARA A MAIS ANTIGA
-    # ========================================================
-
-    resultado.sort(
-        key=lambda item:
-            data_para_numero(
-                item.get(
-                    "data",
-                    ""
-                )
-            ),
-        reverse=True
-    )
-
-    # ========================================================
-    # LIMITA A 130
-    # ========================================================
-
-    resultado = resultado[
-        :MAX_MATERIAS
-    ]
-
-    # ========================================================
-    # IDs
-    # ========================================================
-
-    for numero, item in enumerate(
-        resultado,
-        start=1
-    ):
-
-        item["id"] = numero
-
-    return resultado
-
-
-# ============================================================
-# SALVAR DATA.JSON
-# ============================================================
-
-def salvar(dados):
-
+def salvar(posts):
     with open(
-        ARQUIVO,
+        ARQUIVO_SAIDA,
         "w",
         encoding="utf-8"
     ) as arquivo:
 
         json.dump(
-            dados,
+            posts,
             arquivo,
             ensure_ascii=False,
             indent=2
         )
 
 
-# ============================================================
-# EXECUÇÃO PRINCIPAL
-# ============================================================
+def chave_post(post):
+    return (
+        post.get("link")
+        or post.get("url")
+        or post.get("titulo", "").lower()
+    )
+
 
 def main():
 
-    print("")
+    print("=" * 50)
+    print("IPIRANGA 24H")
+    print("COLETOR DE MATÉRIAS")
+    print("=" * 50)
+
+    print()
     print(
-        "=========================================="
+        "Acessando a página oficial "
+        "'Todas as matérias'..."
+    )
+
+    html = baixar(
+        TODAS_AS_MATERIAS
+    )
+
+    if not html:
+        print(
+            "Não foi possível acessar "
+            "a página de matérias."
+        )
+
+        return
+
+    urls = encontrar_materias(
+        html
     )
 
     print(
-        " BUSCA AUTOMÁTICA DE MATÉRIAS IPIRANGA"
+        f"Matérias encontradas "
+        f"diretamente: {len(urls)}"
     )
+
+    # Também procura links na página
+    # principal da Sala de Imprensa.
+    sala_url = (
+        "https://www.ipiranga.com.br/"
+        "wps/portal/pt-br/ipiranga/"
+        "a-ipiranga/institucional/"
+        "sala-de-imprensa/"
+    )
+
+    print()
+    print(
+        "Verificando também a Sala "
+        "de Imprensa..."
+    )
+
+    sala_html = baixar(
+        sala_url
+    )
+
+    if sala_html:
+        urls.update(
+            encontrar_materias(
+                sala_html
+            )
+        )
 
     print(
-        "=========================================="
+        f"Total de URLs de matérias: "
+        f"{len(urls)}"
     )
 
-    print("")
+    posts_novos = []
 
-    antigas = carregar_antigos()
-
+    print()
     print(
-        "Matérias salvas anteriormente:",
-        len(antigas)
+        "Baixando conteúdo das matérias..."
     )
 
-    print("")
+    # Tenta até 150 matérias.
+    urls = list(urls)[:150]
 
-    novas = encontrar_materias()
+    for numero, url in enumerate(
+        urls,
+        start=1
+    ):
 
-    resultado = juntar_materias(
-        antigas,
-        novas
+        print(
+            f"[{numero}/{len(urls)}] "
+            f"{url}"
+        )
+
+        post = extrair_materia(
+            url
+        )
+
+        if post:
+            posts_novos.append(
+                post
+            )
+
+    print()
+    print(
+        f"Matérias lidas com sucesso: "
+        f"{len(posts_novos)}"
     )
+
+    # Mantém as antigas que já estavam
+    # no arquivo.
+    antigas = carregar_existentes()
+
+    todas = []
+
+    for post in antigas:
+        if isinstance(post, dict):
+            todas.append(post)
+
+    todas.extend(
+        posts_novos
+    )
+
+    # Remove duplicadas.
+    unicas = {}
+
+    for post in todas:
+        chave = chave_post(
+            post
+        )
+
+        if chave:
+            unicas[chave] = post
+
+    resultado = list(
+        unicas.values()
+    )
+
+    # Ordenação simples pela data.
+    def data_ordem(post):
+        valor = str(
+            post.get(
+                "data",
+                ""
+            )
+        )
+
+        numeros = re.sub(
+            r"\D",
+            "",
+            valor
+        )
+
+        return numeros
+
+    resultado.sort(
+        key=data_ordem,
+        reverse=True
+    )
+
+    # Limite do projeto.
+    resultado = resultado[:130]
+
+    # Recria IDs sequenciais.
+    for numero, post in enumerate(
+        resultado,
+        start=1
+    ):
+        post["id"] = numero
+
+        # Garante o campo link.
+        if not post.get("link"):
+            post["link"] = post.get(
+                "url",
+                ""
+            )
+
+        # Remove url antiga caso exista.
+        post.pop(
+            "url",
+            None
+        )
 
     salvar(
         resultado
     )
 
-    print("")
-
+    print()
+    print("=" * 50)
+    print("ATUALIZAÇÃO CONCLUÍDA")
+    print("=" * 50)
     print(
-        "=========================================="
+        f"Total no data.json: "
+        f"{len(resultado)}"
     )
-
-    print(
-        f" TOTAL FINAL: {len(resultado)} MATÉRIAS"
-    )
-
-    print(
-        "=========================================="
-    )
-
-    print("")
-
-    print(
-        "Duplicadas removidas automaticamente."
-    )
-
-    print(
-        "data.json atualizado com sucesso!"
-    )
-
-    print("")
 
 
 if __name__ == "__main__":
-
     main()
