@@ -387,12 +387,9 @@ async function carregarPosts() {
 
     postsContainer.innerHTML = "";
 
-    const postsOrganizados = embaralhar(posts);
-
-    postsOrganizados.forEach((post, indice) => {
-      criarPost(post, indice);
-    });
-
+    posts.forEach((post, indice) => {
+  criarPost(post, indice);
+});
   } catch (erro) {
     console.error(erro);
 
