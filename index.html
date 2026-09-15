@@ -2,7 +2,6 @@
 <html lang="pt-BR">
 
 <head>
-
   <meta charset="UTF-8">
 
   <meta
@@ -12,16 +11,10 @@
 
   <title>Ipiranga 24h</title>
 
-
-  <!-- CSS PRINCIPAL -->
-
   <link
     rel="stylesheet"
-    href="style.css?v=6"
+    href="style.css?v=10"
   >
-
-
-  <!-- ESTILO BÁSICO DA PÁGINA -->
 
   <style>
 
@@ -33,7 +26,9 @@
       margin: 0;
     }
 
-    /* Tela inicial */
+    /* =========================
+       TELA DE ENTRADA
+    ========================= */
 
     .login-screen {
       min-height: 100vh;
@@ -91,15 +86,15 @@
       border: none;
     }
 
-    .botao-login:active,
-    .botao-visitante:active {
-      transform: scale(0.98);
-    }
-
     .botao-visitante {
       background: transparent;
       color: #0057b8;
       border: 2px solid #0057b8;
+    }
+
+    .botao-login:active,
+    .botao-visitante:active {
+      transform: scale(0.98);
     }
 
     .texto-visitante {
@@ -107,7 +102,10 @@
       margin-top: 18px;
     }
 
-    /* Site */
+
+    /* =========================
+       SITE
+    ========================= */
 
     #site {
       width: 100%;
@@ -163,6 +161,164 @@
       margin-top: 0;
     }
 
+
+    /* =========================
+       JANELA DE CONTA
+    ========================= */
+
+    .janela-conta {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 99999;
+    }
+
+    .janela-conta.aberta {
+      display: flex;
+    }
+
+    .caixa-conta {
+      width: 100%;
+      max-width: 420px;
+      background: white;
+      border-radius: 18px;
+      padding: 25px;
+      position: relative;
+      color: #222;
+      box-shadow: 0 10px 40px rgba(0,0,0,.3);
+    }
+
+    .fechar-conta {
+      position: absolute;
+      right: 15px;
+      top: 10px;
+      border: none;
+      background: transparent;
+      font-size: 30px;
+      cursor: pointer;
+      color: #555;
+    }
+
+    .titulo-conta {
+      text-align: center;
+      color: #0057b8;
+      margin-top: 5px;
+      margin-bottom: 20px;
+    }
+
+    .abas-conta {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .aba-conta {
+      flex: 1;
+      padding: 11px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #eeeeee;
+      font-weight: bold;
+    }
+
+    .aba-conta.ativa {
+      background: #ffd400;
+      color: #222;
+    }
+
+    .form-conta {
+      display: none;
+    }
+
+    .form-conta.ativo {
+      display: block;
+    }
+
+    .form-conta label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: bold;
+    }
+
+    .form-conta input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      font-size: 16px;
+      outline: none;
+    }
+
+    .form-conta input:focus {
+      border-color: #0057b8;
+    }
+
+    .botao-conta-principal {
+      width: 100%;
+      padding: 13px;
+      background: #0057b8;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .botao-conta-principal:disabled {
+      opacity: .6;
+      cursor: wait;
+    }
+
+    .mensagem-conta {
+      display: none;
+      margin-bottom: 15px;
+      padding: 10px;
+      border-radius: 8px;
+      background: #f1f1f1;
+      font-size: 14px;
+    }
+
+    .mensagem-conta.mostrar {
+      display: block;
+    }
+
+
+    /* =========================
+       RESPONSIVO
+    ========================= */
+
+    @media (max-width: 600px) {
+
+      .brand img {
+        width: 55px;
+        height: 48px;
+      }
+
+      .brand h1 {
+        font-size: 18px;
+      }
+
+      .brand span {
+        font-size: 11px;
+      }
+
+      .btn-sair {
+        font-size: 13px;
+      }
+
+      .caixa-conta {
+        padding: 20px;
+      }
+
+    }
+
   </style>
 
 </head>
@@ -171,9 +327,9 @@
 <body>
 
 
-  <!-- ==================================================
-       TELA DE LOGIN
-       ================================================== -->
+  <!-- =========================
+       TELA INICIAL
+  ========================= -->
 
   <section
     class="login-screen"
@@ -181,9 +337,6 @@
   >
 
     <div class="login-card">
-
-
-      <!-- LOGO -->
 
       <div class="logo-area">
 
@@ -196,30 +349,21 @@
       </div>
 
 
-      <!-- TÍTULO -->
-
-      <h1>
-        Ipiranga 24h
-      </h1>
-
+      <h1>Ipiranga 24h</h1>
 
       <p class="login-subtitulo">
         Informações e novidades da Ipiranga
       </p>
 
 
-      <!-- ENTRAR -->
-
       <button
         type="button"
         class="botao-login"
-        onclick="entrar()"
+        onclick="abrirJanelaConta()"
       >
         Entrar
       </button>
 
-
-      <!-- VISITANTE -->
 
       <button
         type="button"
@@ -234,51 +378,39 @@
         Você poderá acessar como visitante sem informar CPF.
       </p>
 
-
     </div>
 
   </section>
 
 
 
-  <!-- ==================================================
-       SITE PRINCIPAL
-       ================================================== -->
+  <!-- =========================
+       SITE
+  ========================= -->
 
   <div
     id="site"
-    style="display: none;"
+    style="display:none;"
   >
-
-
-    <!-- ==================================================
-         CABEÇALHO
-         ================================================== -->
 
     <header class="topbar">
 
-
       <div class="brand">
-
 
         <img
           src="Screenshot_2026-09-14-13-41-10-437_com.openai.chatgpt-edit.jpg"
           alt="Ipiranga"
         >
 
-
         <div>
 
-          <h1>
-            Ipiranga 24h
-          </h1>
+          <h1>Ipiranga 24h</h1>
 
           <span>
             Informações e novidades
           </span>
 
         </div>
-
 
       </div>
 
@@ -291,25 +423,14 @@
         Sair
       </button>
 
-
     </header>
 
-
-
-    <!-- LINHA AMARELA -->
 
     <div class="linha-amarela"></div>
 
 
-
-    <!-- ==================================================
-         CONTEÚDO
-         ================================================== -->
-
     <main class="conteudo">
 
-
-      <!-- AVISO -->
 
       <div class="aviso-visitante">
 
@@ -317,9 +438,6 @@
 
       </div>
 
-
-
-      <!-- TÍTULO -->
 
       <section class="cabecalho-conteudo">
 
@@ -334,20 +452,13 @@
       </section>
 
 
-
-      <!-- ==================================================
-           NOTÍCIAS
-           ================================================== -->
-
       <section
         id="posts"
         class="posts"
       >
 
         <div class="carregando">
-
           Carregando informações...
-
         </div>
 
       </section>
@@ -355,45 +466,597 @@
 
     </main>
 
+  </div>
+
+
+
+  <!-- =========================
+       JANELA DE LOGIN
+  ========================= -->
+
+  <div
+    id="janela-conta"
+    class="janela-conta"
+  >
+
+    <div class="caixa-conta">
+
+
+      <button
+        class="fechar-conta"
+        type="button"
+        onclick="fecharJanelaConta()"
+      >
+        ×
+      </button>
+
+
+      <h2 class="titulo-conta">
+        Ipiranga 24h
+      </h2>
+
+
+      <div class="abas-conta">
+
+        <button
+          id="aba-login"
+          class="aba-conta ativa"
+          type="button"
+          onclick="mostrarLogin()"
+        >
+          Entrar
+        </button>
+
+
+        <button
+          id="aba-cadastro"
+          class="aba-conta"
+          type="button"
+          onclick="mostrarCadastro()"
+        >
+          Criar conta
+        </button>
+
+      </div>
+
+
+      <div
+        id="mensagem-conta"
+        class="mensagem-conta"
+      ></div>
+
+
+
+      <!-- LOGIN -->
+
+      <form
+        id="form-login"
+        class="form-conta ativo"
+        onsubmit="entrarComConta(event)"
+      >
+
+        <label for="login-email">
+          E-mail
+        </label>
+
+        <input
+          id="login-email"
+          type="email"
+          placeholder="seu@email.com"
+          required
+        >
+
+
+        <label for="login-senha">
+          Senha
+        </label>
+
+        <input
+          id="login-senha"
+          type="password"
+          placeholder="Sua senha"
+          required
+        >
+
+
+        <button
+          id="botao-entrar-conta"
+          class="botao-conta-principal"
+          type="submit"
+        >
+          Entrar
+        </button>
+
+      </form>
+
+
+
+      <!-- CADASTRO -->
+
+      <form
+        id="form-cadastro"
+        class="form-conta"
+        onsubmit="criarConta(event)"
+      >
+
+        <label for="cadastro-nome">
+          Nome de usuário
+        </label>
+
+        <input
+          id="cadastro-nome"
+          type="text"
+          placeholder="Como você quer aparecer?"
+          required
+        >
+
+
+        <label for="cadastro-email">
+          E-mail
+        </label>
+
+        <input
+          id="cadastro-email"
+          type="email"
+          placeholder="seu@email.com"
+          required
+        >
+
+
+        <label for="cadastro-senha">
+          Senha
+        </label>
+
+        <input
+          id="cadastro-senha"
+          type="password"
+          placeholder="Mínimo de 6 caracteres"
+          minlength="6"
+          required
+        >
+
+
+        <button
+          id="botao-criar-conta"
+          class="botao-conta-principal"
+          type="submit"
+        >
+          Criar conta
+        </button>
+
+      </form>
+
+
+    </div>
 
   </div>
 
 
 
-  <!-- ==================================================
-       FUNÇÕES DE SEGURANÇA DOS BOTÕES
-       ================================================== -->
+  <!-- =========================
+       SUPABASE
+  ========================= -->
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+
+
+  <!-- =========================
+       FUNÇÕES PRINCIPAIS
+  ========================= -->
 
   <script>
 
-    /*
-      Essas funções são um "plano B".
+    const SUPABASE_URL =
+      "https://afbbgtijozwdnytjskka.supabase.co";
 
-      Se o script principal ainda não tiver carregado,
-      os botões continuam respondendo.
-    */
+    const SUPABASE_KEY =
+      "sb_publishable_l1xwkAczycJw-vaA9TXPNA_uGV7QS0n";
 
 
-    window.entrar = function () {
+    let supabaseClient = null;
+
+
+    /* =========================
+       INICIAR SUPABASE
+    ========================= */
+
+    function iniciarSupabase() {
 
       if (
-        typeof abrirJanelaConta === "function"
+        window.supabase &&
+        typeof window.supabase.createClient === "function"
       ) {
 
-        abrirJanelaConta();
+        supabaseClient =
+          window.supabase.createClient(
+            SUPABASE_URL,
+            SUPABASE_KEY
+          );
 
-      } else {
+        return true;
+      }
 
-        alert(
-          "O sistema de login ainda está carregando. Tente novamente."
+      return false;
+    }
+
+
+    iniciarSupabase();
+
+
+
+    /* =========================
+       JANELA DE CONTA
+    ========================= */
+
+    function abrirJanelaConta() {
+
+      const janela =
+        document.getElementById("janela-conta");
+
+      if (!janela) return;
+
+      janela.classList.add("aberta");
+
+      mostrarLogin();
+
+    }
+
+
+    function fecharJanelaConta() {
+
+      const janela =
+        document.getElementById("janela-conta");
+
+      if (!janela) return;
+
+      janela.classList.remove("aberta");
+
+      limparMensagem();
+
+    }
+
+
+
+    /* =========================
+       TROCAR LOGIN / CADASTRO
+    ========================= */
+
+    function mostrarLogin() {
+
+      document
+        .getElementById("form-login")
+        .classList.add("ativo");
+
+      document
+        .getElementById("form-cadastro")
+        .classList.remove("ativo");
+
+
+      document
+        .getElementById("aba-login")
+        .classList.add("ativa");
+
+      document
+        .getElementById("aba-cadastro")
+        .classList.remove("ativa");
+
+
+      limparMensagem();
+
+    }
+
+
+    function mostrarCadastro() {
+
+      document
+        .getElementById("form-login")
+        .classList.remove("ativo");
+
+      document
+        .getElementById("form-cadastro")
+        .classList.add("ativo");
+
+
+      document
+        .getElementById("aba-login")
+        .classList.remove("ativa");
+
+      document
+        .getElementById("aba-cadastro")
+        .classList.add("ativa");
+
+
+      limparMensagem();
+
+    }
+
+
+
+    /* =========================
+       MENSAGENS
+    ========================= */
+
+    function mostrarMensagem(texto) {
+
+      const mensagem =
+        document.getElementById("mensagem-conta");
+
+      if (!mensagem) return;
+
+      mensagem.textContent = texto;
+
+      mensagem.classList.add("mostrar");
+
+    }
+
+
+    function limparMensagem() {
+
+      const mensagem =
+        document.getElementById("mensagem-conta");
+
+      if (!mensagem) return;
+
+      mensagem.textContent = "";
+
+      mensagem.classList.remove("mostrar");
+
+    }
+
+
+
+    /* =========================
+       CRIAR CONTA
+    ========================= */
+
+    async function criarConta(event) {
+
+      event.preventDefault();
+
+      limparMensagem();
+
+
+      if (!supabaseClient) {
+
+        mostrarMensagem(
+          "Não foi possível conectar ao sistema de contas."
         );
+
+        return;
+      }
+
+
+      const nome =
+        document
+          .getElementById("cadastro-nome")
+          .value
+          .trim();
+
+
+      const email =
+        document
+          .getElementById("cadastro-email")
+          .value
+          .trim();
+
+
+      const senha =
+        document
+          .getElementById("cadastro-senha")
+          .value;
+
+
+      if (!nome || !email || !senha) {
+
+        mostrarMensagem(
+          "Preencha todos os campos."
+        );
+
+        return;
+      }
+
+
+      const botao =
+        document.getElementById(
+          "botao-criar-conta"
+        );
+
+
+      botao.disabled = true;
+
+      botao.textContent =
+        "Criando conta...";
+
+
+      try {
+
+        const resultado =
+          await supabaseClient.auth.signUp({
+
+            email: email,
+
+            password: senha,
+
+            options: {
+
+              data: {
+                username: nome
+              }
+
+            }
+
+          });
+
+
+        if (resultado.error) {
+
+          mostrarMensagem(
+            resultado.error.message
+          );
+
+          return;
+        }
+
+
+        mostrarMensagem(
+          "Conta criada! Verifique seu e-mail se for solicitado e depois entre."
+        );
+
+
+        document
+          .getElementById("cadastro-nome")
+          .value = "";
+
+        document
+          .getElementById("cadastro-email")
+          .value = "";
+
+        document
+          .getElementById("cadastro-senha")
+          .value = "";
+
+
+        setTimeout(
+          mostrarLogin,
+          1800
+        );
+
+
+      } catch (erro) {
+
+        mostrarMensagem(
+          "Erro ao criar a conta."
+        );
+
+      } finally {
+
+        botao.disabled = false;
+
+        botao.textContent =
+          "Criar conta";
 
       }
 
-    };
+    }
 
 
-    window.entrarComoVisitante = function () {
+
+    /* =========================
+       ENTRAR NA CONTA
+    ========================= */
+
+    async function entrarComConta(event) {
+
+      event.preventDefault();
+
+      limparMensagem();
+
+
+      if (!supabaseClient) {
+
+        mostrarMensagem(
+          "Não foi possível conectar ao sistema de contas."
+        );
+
+        return;
+      }
+
+
+      const email =
+        document
+          .getElementById("login-email")
+          .value
+          .trim();
+
+
+      const senha =
+        document
+          .getElementById("login-senha")
+          .value;
+
+
+      if (!email || !senha) {
+
+        mostrarMensagem(
+          "Digite seu e-mail e sua senha."
+        );
+
+        return;
+      }
+
+
+      const botao =
+        document.getElementById(
+          "botao-entrar-conta"
+        );
+
+
+      botao.disabled = true;
+
+      botao.textContent =
+        "Entrando...";
+
+
+      try {
+
+        const resultado =
+          await supabaseClient.auth.signInWithPassword({
+
+            email: email,
+
+            password: senha
+
+          });
+
+
+        if (resultado.error) {
+
+          mostrarMensagem(
+            "E-mail ou senha incorretos."
+          );
+
+          return;
+        }
+
+
+        localStorage.setItem(
+          "modoAcesso",
+          "conta"
+        );
+
+
+        fecharJanelaConta();
+
+        mostrarSite();
+
+        carregarPosts();
+
+
+      } catch (erro) {
+
+        mostrarMensagem(
+          "Erro ao entrar na conta."
+        );
+
+      } finally {
+
+        botao.disabled = false;
+
+        botao.textContent =
+          "Entrar";
+
+      }
+
+    }
+
+
+
+    /* =========================
+       VISITANTE
+    ========================= */
+
+    function entrarComoVisitante() {
 
       localStorage.setItem(
         "modoAcesso",
@@ -401,11 +1064,24 @@
       );
 
 
-      const telaLogin =
-        document.querySelector(
-          ".login-screen"
-        );
+      mostrarSite();
 
+      carregarPosts();
+
+    }
+
+
+
+    /* =========================
+       MOSTRAR SITE
+    ========================= */
+
+    function mostrarSite() {
+
+      const login =
+        document.getElementById(
+          "login-screen"
+        );
 
       const site =
         document.getElementById(
@@ -413,9 +1089,9 @@
         );
 
 
-      if (telaLogin) {
+      if (login) {
 
-        telaLogin.style.display =
+        login.style.display =
           "none";
 
       }
@@ -429,29 +1105,44 @@
       }
 
 
-      if (
-        typeof carregarPosts === "function"
-      ) {
+      atualizarAviso();
 
-        carregarPosts();
-
-      }
-
-    };
+    }
 
 
-    window.sair = function () {
+
+    /* =========================
+       VOLTAR PARA LOGIN
+    ========================= */
+
+    async function sair() {
 
       localStorage.removeItem(
         "modoAcesso"
       );
 
 
-      const telaLogin =
-        document.querySelector(
-          ".login-screen"
-        );
+      if (
+        supabaseClient
+      ) {
 
+        try {
+
+          await supabaseClient.auth.signOut();
+
+        } catch (erro) {
+
+          console.log(erro);
+
+        }
+
+      }
+
+
+      const login =
+        document.getElementById(
+          "login-screen"
+        );
 
       const site =
         document.getElementById(
@@ -467,38 +1158,139 @@
       }
 
 
-      if (telaLogin) {
+      if (login) {
 
-        telaLogin.style.display =
+        login.style.display =
           "flex";
 
       }
 
-    };
-
-  </script>
+    }
 
 
 
-  <!-- ==================================================
-       SUPABASE
-       ================================================== -->
+    /* =========================
+       AVISO DO USUÁRIO
+    ========================= */
 
-  <script
-    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
-  ></script>
+    function atualizarAviso() {
 
-
-
-  <!-- ==================================================
-       SCRIPT PRINCIPAL
-       ================================================== -->
-
-  <script
-    src="script.js?v=6"
-  ></script>
+      const aviso =
+        document.querySelector(
+          ".aviso-visitante"
+        );
 
 
-</body>
+      if (!aviso) return;
 
-</html>
+
+      const modo =
+        localStorage.getItem(
+          "modoAcesso"
+        );
+
+
+      if (modo === "conta") {
+
+        aviso.textContent =
+          "👤 Você está conectado à sua conta.";
+
+      } else {
+
+        aviso.textContent =
+          "👤 Você está navegando como visitante.";
+
+      }
+
+    }
+
+
+
+    /* =========================
+       CARREGAR PUBLICAÇÕES
+    ========================= */
+
+    async function carregarPosts() {
+
+      const container =
+        document.getElementById(
+          "posts"
+        );
+
+
+      if (!container) return;
+
+
+      container.innerHTML = `
+        <div class="carregando">
+          Carregando informações...
+        </div>
+      `;
+
+
+      try {
+
+        const resposta =
+          await fetch(
+            "data.json?v=" +
+            Date.now()
+          );
+
+
+        if (!resposta.ok) {
+
+          throw new Error(
+            "Erro ao carregar data.json"
+          );
+
+        }
+
+
+        const posts =
+          await resposta.json();
+
+
+        if (
+          !Array.isArray(posts) ||
+          posts.length === 0
+        ) {
+
+          container.innerHTML = `
+            <div class="estado-vazio">
+              Nenhuma informação encontrada.
+            </div>
+          `;
+
+          return;
+
+        }
+
+
+        /* embaralha as notícias */
+
+        const embaralhadas =
+          [...posts]
+            .sort(
+              () => Math.random() - 0.5
+            )
+            .slice(0, 4);
+
+
+        container.innerHTML = "";
+
+
+        embaralhadas.forEach(
+          (post, indice) => {
+
+            const artigo =
+              document.createElement(
+                "article"
+              );
+
+
+            artigo.className =
+              "post";
+
+
+            const titulo =
+       
