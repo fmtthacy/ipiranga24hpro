@@ -2,9 +2,11 @@ import json
 import re
 import unicodedata
 from pathlib import Path
+from collections import deque
 
 import requests
 from bs4 import BeautifulSoup
+from urllib.parse import urljoin, urlparse
 
 
 ARQUIVO = Path("data.json")
@@ -12,6 +14,11 @@ ARQUIVO = Path("data.json")
 URL_MATERIAS = (
     "https://www.ipiranga.com.br/wps/portal/pt-br/ipiranga/"
     "a-ipiranga/institucional/sala-de-imprensa/todas-as-materias"
+)
+
+URL_SALA_IMPRENSA = (
+    "https://www.ipiranga.com.br/wps/portal/pt-br/ipiranga/"
+    "a-ipiranga/institucional/sala-de-imprensa/"
 )
 
 HEADERS = {
@@ -22,52 +29,18 @@ HEADERS = {
     )
 }
 
-# =========================================================
-# MATÉRIAS OFICIAIS DA IPIRANGA
-# Base inicial para complementar a página que atualmente
-# disponibiliza apenas alguns releases no HTML público.
-# =========================================================
+# Limite para o robô não ficar percorrendo o site infinitamente.
+MAX_MATERIAS = 100
 
-MATERIAS_BASE = [
-    "https://www.ipiranga.com.br/wps/portal/pt-br/ipiranga/a-ipiranga/institucional/sala-de-imprensa/materias/ipiranga-e-rock-in-rio-brasil-2026-completam-a-experiencia-do-publico-no-show-de-pedro-sampaio",
-
-    "https://www.ipiranga.com.br/wps/portal/pt-br/ipiranga/a-ipiranga/institucional/sala-de-imprensa/materias/ipiranga-leva-sua-parada-completa-ao-rock-in-rio-brasil-2026",
-
-    "https://www.ipiranga.com.br/wps/portal/pt-br/ipiranga/a-ipiranga/institucional/sala-de-imprensa/materias/ipiranga-reforca-tradicao-no-rio-grande-do-sul-com-participacao-na-expointer-2026",
-
-    "https://www.ipiranga.com.br/wps/portal/pt-br/ipiranga/a-ipiranga/institucional/sala-de-imprensa/materias/ipiranga-e-texaco-inauguram-primeiro-posto-texaco-no-rio-de-janeiro",
-
-    "https://www.ipiranga.com.br/wps/portal/pt-br/ipiranga/a-ipiranga/institucional/sala-de-imprensa/materias/ipiranga-ampm-e-krispy-kreme-abrem-inscricoes-para-programas-de-estagio-2026",
-
-    "https://www.ipiranga.com.br/wps/portal/pt-br/ipiranga/a-ipiranga/institucional/sala-de-imprensa/materias/ipiranga-anuncia-resgate-de-ingressos-para-o-rock-in-rio-brasil-2026-via-kmv",
-
-    "https://www.ipiranga.com.br/wps/portal/pt-br/ipiranga/a-ipiranga/institucional/sala-de-imprensa/materias/ipiranga-lanca-relatorio-de-sustentabilidade-2025-com-avancos-em-seguranca-e-gestao-de-residuos",
-
-    "https://www.ipiranga.com.br/wps/portal/pt-br/ipiranga/a-ipiranga/institucional/sala-de-imprensa/materias/ipiranga-lanca-campanha-la-a-parada-e-completa-e-reforca-o-posto-como-solucao-para-varias-paradas-em-um-so-lugar",
-
-    "https://www.ipiranga.com.br/wps/portal/pt-br/ipiranga/a-ipiranga/institucional/sala-de-imprensa/materias/ipiranga-e-rede-exata-inauguram-primeiro-posto-texaco-em-minas-gerais",
-]
+# Limite de páginas que podem ser visitadas durante uma execução.
+MAX_PAGINAS = 150
 
 
 def normalizar(texto):
     texto = texto or ""
-
-    texto = unicodedata.normalize(
-        "NFKD",
-        texto
-    )
-
-    texto = "".join(
-        c for c in texto
-        if not unicodedata.combining(c)
-    )
-
-    texto = re.sub(
-        r"\s+",
-        " ",
-        texto
-    )
-
+    texto = unicodedata.normalize("NFKD", texto)
+    texto = "".join(c for c in texto if not unicodedata.combining(c))
+    texto = re.sub(r"\s+", " ", texto)
     return texto.strip().lower()
 
 
@@ -86,65 +59,173 @@ def baixar_pagina(url):
     )
 
 
-def encontrar_links_materias():
+def eh_materia_ipiranga(url):
+    """
+    Verifica se o endereço parece ser uma matéria
+    oficial da sala de imprensa da Ipiranga.
+    """
 
-    print("Buscando matérias no site oficial...")
+    if not url:
+        return False
 
-    links = []
-    vistos = set()
+    url_normalizada = normalizar(url)
 
-    # -----------------------------------------------------
-    # 1. Busca os links disponíveis na página atual.
-    # -----------------------------------------------------
-
-    try:
-
-        soup = baixar_pagina(URL_MATERIAS)
-
-        for a in soup.find_all("a", href=True):
-
-            href = a["href"].strip()
-
-            if "/materias/" not in href:
-                continue
-
-            if href.startswith("/"):
-                href = (
-                    "https://www.ipiranga.com.br"
-                    + href
-                )
-
-            if href not in vistos:
-
-                vistos.add(href)
-                links.append(href)
-
-    except Exception as erro:
-
-        print(
-            "Erro ao acessar lista de matérias:",
-            erro
-        )
-
-    # -----------------------------------------------------
-    # 2. Adiciona a base oficial conhecida.
-    # -----------------------------------------------------
-
-    for link in MATERIAS_BASE:
-
-        if link not in vistos:
-
-            vistos.add(link)
-            links.append(link)
-
-    print(
-        f"Links oficiais encontrados: {len(links)}"
+    return (
+        "ipiranga.com.br" in url_normalizada
+        and "/sala-de-imprensa/" in url_normalizada
+        and "/materias/" in url_normalizada
     )
 
-    return links
+
+def normalizar_url(url):
+    """
+    Remove fragmentos e pequenos problemas de URL.
+    """
+
+    try:
+        partes = urlparse(url)
+
+        return (
+            partes.scheme
+            + "://"
+            + partes.netloc
+            + partes.path
+        ).rstrip("/")
+
+    except Exception:
+        return url
+
+
+def encontrar_links_na_pagina(soup, url_atual):
+    """
+    Procura links para outras matérias oficiais.
+    """
+
+    encontrados = []
+
+    for a in soup.find_all("a", href=True):
+
+        href = a.get("href", "").strip()
+
+        if not href:
+            continue
+
+        url = urljoin(url_atual, href)
+
+        url = normalizar_url(url)
+
+        if eh_materia_ipiranga(url):
+            encontrados.append(url)
+
+    return encontrados
+
+
+def extrair_data(texto):
+    """
+    Tenta encontrar datas no formato brasileiro.
+    """
+
+    encontrados = re.findall(
+        r"\b(\d{2}/\d{2}/\d{4})\b",
+        texto
+    )
+
+    if not encontrados:
+        return ""
+
+    return encontrados[0]
+
+
+def extrair_titulo(soup):
+    """
+    Extrai o título principal da matéria.
+    """
+
+    h1 = soup.find("h1")
+
+    if h1:
+        titulo = h1.get_text(" ", strip=True)
+
+        if len(titulo) >= 20:
+            return titulo
+
+    # Fallback para title da página.
+    if soup.title:
+        titulo = soup.title.get_text(" ", strip=True)
+
+        titulo = re.sub(
+            r"\s*\|\s*Ipiranga.*$",
+            "",
+            titulo,
+            flags=re.IGNORECASE
+        )
+
+        if len(titulo) >= 20:
+            return titulo.strip()
+
+    return ""
+
+
+def extrair_descricao(soup):
+    """
+    Procura o primeiro parágrafo útil da matéria.
+    """
+
+    ignorar = [
+        "fique por dentro de todas as novidades",
+        "sobre a ipiranga",
+        "informações para imprensa",
+        "informacoes para imprensa",
+        "compartilhe",
+        "tópicos da matéria",
+        "topicos da materia",
+        "copiar",
+        "baixar material",
+        "leia também",
+        "leia tambem",
+        "acesse",
+        "veja também",
+        "veja tambem"
+    ]
+
+    candidatos = []
+
+    for p in soup.find_all("p"):
+
+        texto = p.get_text(" ", strip=True)
+
+        if len(texto) < 60:
+            continue
+
+        texto_normalizado = normalizar(texto)
+
+        if any(
+            palavra in texto_normalizado
+            for palavra in ignorar
+        ):
+            continue
+
+        candidatos.append(texto)
+
+    if not candidatos:
+        return "Confira a publicação oficial da Ipiranga."
+
+    descricao = candidatos[0]
+
+    if len(descricao) > 400:
+        descricao = (
+            descricao[:397]
+            .rsplit(" ", 1)[0]
+            + "..."
+        )
+
+    return descricao
 
 
 def extrair_materia(url):
+    """
+    Abre uma matéria e extrai seus dados.
+    """
 
     print("Lendo:", url)
 
@@ -152,119 +233,27 @@ def extrair_materia(url):
 
         soup = baixar_pagina(url)
 
-        # =================================================
-        # TÍTULO
-        # =================================================
+        titulo = extrair_titulo(soup)
 
-        titulo = ""
-
-        h1 = soup.find("h1")
-
-        if h1:
-
-            titulo = h1.get_text(
-                " ",
-                strip=True
-            )
-
-        if not titulo or len(titulo) < 20:
-
-            print(
-                "Título não encontrado."
-            )
-
-            return None
-
-        # =================================================
-        # DATA
-        # =================================================
-
-        data = ""
+        if not titulo:
+            print("  Título não encontrado.")
+            return None, []
 
         texto_pagina = soup.get_text(
             " ",
             strip=True
         )
 
-        encontrado = re.search(
-            r"Atualizado\s+em\s+(\d{2}/\d{2}/\d{4})",
-            texto_pagina,
-            re.IGNORECASE
+        data = extrair_data(texto_pagina)
+
+        descricao = extrair_descricao(soup)
+
+        links_relacionados = encontrar_links_na_pagina(
+            soup,
+            url
         )
 
-        if encontrado:
-
-            data = encontrado.group(1)
-
-        if not data:
-
-            encontrado = re.search(
-                r"\b(\d{2}/\d{2}/\d{4})\b",
-                texto_pagina
-            )
-
-            if encontrado:
-
-                data = encontrado.group(1)
-
-        # =================================================
-        # DESCRIÇÃO
-        # =================================================
-
-        descricao = ""
-
-        ignorar = [
-            "fique por dentro de todas as novidades",
-            "sobre a ipiranga",
-            "informações para imprensa",
-            "informacoes para imprensa",
-            "compartilhe",
-            "tópicos da matéria",
-            "topicos da materia",
-            "copiar",
-            "baixar material",
-            "leia também"
-        ]
-
-        for p in soup.find_all("p"):
-
-            texto = p.get_text(
-                " ",
-                strip=True
-            )
-
-            if len(texto) < 60:
-                continue
-
-            texto_normalizado = normalizar(
-                texto
-            )
-
-            if any(
-                palavra in texto_normalizado
-                for palavra in ignorar
-            ):
-                continue
-
-            descricao = texto
-
-            break
-
-        if not descricao:
-
-            descricao = (
-                "Confira a publicação oficial da Ipiranga."
-            )
-
-        if len(descricao) > 400:
-
-            descricao = (
-                descricao[:397]
-                .rsplit(" ", 1)[0]
-                + "..."
-            )
-
-        return {
+        materia = {
             "titulo": titulo,
             "descricao": descricao,
             "data": data,
@@ -272,20 +261,188 @@ def extrair_materia(url):
             "link": url
         }
 
+        return materia, links_relacionados
+
     except Exception as erro:
 
         print(
-            "Erro ao ler matéria:",
+            "  Erro ao ler matéria:",
             erro
         )
 
+        return None, []
+
+
+def encontrar_materias():
+    """
+    Faz uma busca em profundidade limitada pelo site oficial.
+
+    Começa pela sala de imprensa e vai seguindo
+    links que levam para outras matérias.
+    """
+
+    fila = deque()
+
+    visitados = set()
+
+    materias_encontradas = {}
+
+    # Pontos iniciais.
+    fila.append(
+        normalizar_url(URL_MATERIAS)
+    )
+
+    fila.append(
+        normalizar_url(URL_SALA_IMPRENSA)
+    )
+
+    paginas_visitadas = 0
+
+    while fila:
+
+        if paginas_visitadas >= MAX_PAGINAS:
+            print(
+                "Limite de páginas atingido."
+            )
+            break
+
+        url = fila.popleft()
+
+        url = normalizar_url(url)
+
+        if url in visitados:
+            continue
+
+        visitados.add(url)
+
+        paginas_visitadas += 1
+
+        print(
+            f"\nPágina {paginas_visitadas}/{MAX_PAGINAS}"
+        )
+
+        try:
+
+            soup = baixar_pagina(url)
+
+        except Exception as erro:
+
+            print(
+                "Não foi possível acessar:",
+                erro
+            )
+
+            continue
+
+        # Se for uma matéria, extrai os dados.
+        if eh_materia_ipiranga(url):
+
+            materia = extrair_dados_da_soup(
+                soup,
+                url
+            )
+
+            if materia:
+
+                chave = normalizar_url(
+                    materia["link"]
+                )
+
+                materias_encontradas[
+                    chave
+                ] = materia
+
+                print(
+                    "  ✓ Matéria encontrada:",
+                    materia["titulo"]
+                )
+
+        # Procura links para outras matérias.
+        novos_links = encontrar_links_na_pagina(
+            soup,
+            url
+        )
+
+        for novo_link in novos_links:
+
+            novo_link = normalizar_url(
+                novo_link
+            )
+
+            if novo_link in visitados:
+                continue
+
+            if novo_link in materias_encontradas:
+                continue
+
+            if len(
+                materias_encontradas
+            ) >= MAX_MATERIAS:
+                break
+
+            fila.append(novo_link)
+
+        if len(
+            materias_encontradas
+        ) >= MAX_MATERIAS:
+
+            print(
+                f"\nLimite de {MAX_MATERIAS} matérias atingido."
+            )
+
+            break
+
+    print("")
+    print(
+        "Páginas visitadas:",
+        paginas_visitadas
+    )
+
+    print(
+        "Matérias encontradas:",
+        len(materias_encontradas)
+    )
+
+    return list(
+        materias_encontradas.values()
+    )
+
+
+def extrair_dados_da_soup(soup, url):
+    """
+    Extrai dados de uma matéria usando uma página
+    que já foi baixada.
+    """
+
+    titulo = extrair_titulo(soup)
+
+    if not titulo:
         return None
+
+    texto_pagina = soup.get_text(
+        " ",
+        strip=True
+    )
+
+    data = extrair_data(
+        texto_pagina
+    )
+
+    descricao = extrair_descricao(
+        soup
+    )
+
+    return {
+        "titulo": titulo,
+        "descricao": descricao,
+        "data": data,
+        "fonte": "Ipiranga",
+        "link": url
+    }
 
 
 def carregar_antigos():
-
     if not ARQUIVO.exists():
-
         return []
 
     try:
@@ -299,7 +456,6 @@ def carregar_antigos():
             dados = json.load(arquivo)
 
         if isinstance(dados, list):
-
             return dados
 
     except Exception as erro:
@@ -314,6 +470,9 @@ def carregar_antigos():
 
 def limpar_materia(item):
 
+    if not isinstance(item, dict):
+        return False
+
     titulo = item.get(
         "titulo",
         ""
@@ -324,26 +483,21 @@ def limpar_materia(item):
         ""
     ).strip()
 
-    if re.fullmatch(
-        r"\d{1,2}\s+"
-        r"(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)",
-        titulo.lower()
-    ):
-
+    if not titulo:
         return False
 
-    if normalizar(titulo) == (
-        "não encontramos resultados para sua pesquisa. 🙁"
-    ):
+    if not link:
+        return False
 
+    if not eh_materia_ipiranga(link):
         return False
 
     if len(titulo) < 20:
-
         return False
 
-    if "/materias/" not in link:
-
+    if normalizar(titulo) == normalizar(
+        "Não encontramos resultados para sua pesquisa. 🙁"
+    ):
         return False
 
     return True
@@ -351,11 +505,8 @@ def limpar_materia(item):
 
 def chave_link(item):
 
-    return normalizar(
-        item.get(
-            "link",
-            ""
-        ).strip()
+    return normalizar_url(
+        item.get("link", "").strip()
     )
 
 
@@ -384,66 +535,47 @@ def juntar_materias(antigas, novas):
 
     materias = {}
 
-    # -----------------------------------------------------
-    # Mantém as matérias antigas.
-    # -----------------------------------------------------
-
+    # Mantém o histórico que já estava salvo.
     for item in antigas:
 
         if not limpar_materia(item):
-
             continue
 
         chave = chave_link(item)
 
         if chave:
-
             materias[chave] = item
 
-    # -----------------------------------------------------
-    # Adiciona / atualiza matérias encontradas.
-    # -----------------------------------------------------
-
+    # Adiciona/atualiza as novas.
     for item in novas:
 
-        if not item:
-
-            continue
-
         if not limpar_materia(item):
-
             continue
 
         chave = chave_link(item)
 
         if chave:
-
             materias[chave] = item
 
     resultado = list(
         materias.values()
     )
 
-    # -----------------------------------------------------
-    # Mais recente primeiro.
-    # -----------------------------------------------------
-
+    # Mais nova primeiro.
     resultado.sort(
-        key=lambda item: data_para_numero(
-            item.get("data", "")
-        ),
+        key=lambda item:
+            data_para_numero(
+                item.get("data", "")
+            ),
         reverse=True
     )
 
-    # -----------------------------------------------------
-    # IDs
-    # -----------------------------------------------------
-
+    # IDs temporários apenas para compatibilidade
+    # com o site atual.
     for numero, item in enumerate(
         resultado,
         start=1
     ):
-
         item["id"] = numero
 
     return resultado
@@ -468,62 +600,44 @@ def salvar(dados):
 def main():
 
     print("")
-    print("======================================")
-    print(" ATUALIZAÇÃO AUTOMÁTICA DA IPIRANGA")
-    print("======================================")
+    print(
+        "======================================"
+    )
+    print(
+        " BUSCA AUTOMÁTICA DE MATÉRIAS IPIRANGA"
+    )
+    print(
+        "======================================"
+    )
     print("")
 
     antigas = carregar_antigos()
 
     print(
-        f"Matérias antigas: {len(antigas)}"
+        "Matérias já salvas:",
+        len(antigas)
     )
 
-    # -----------------------------------------------------
-    # Descobre os links.
-    # -----------------------------------------------------
-
-    links = encontrar_links_materias()
-
-    # -----------------------------------------------------
-    # Lê cada matéria individualmente.
-    # -----------------------------------------------------
-
-    novas = []
-
-    for link in links:
-
-        materia = extrair_materia(link)
-
-        if materia:
-
-            novas.append(materia)
-
-    print("")
-    print(
-        f"Matérias processadas: {len(novas)}"
-    )
-
-    # -----------------------------------------------------
-    # Junta tudo sem duplicar.
-    # -----------------------------------------------------
+    novas = encontrar_materias()
 
     resultado = juntar_materias(
         antigas,
         novas
     )
 
-    # -----------------------------------------------------
-    # Salva.
-    # -----------------------------------------------------
-
     salvar(resultado)
 
     print("")
     print(
-        f"Total final: {len(resultado)} matérias"
+        "======================================"
     )
-
+    print(
+        f" TOTAL FINAL: {len(resultado)} MATÉRIAS"
+    )
+    print(
+        "======================================"
+    )
+    print("")
     print(
         "data.json atualizado com sucesso!"
     )
